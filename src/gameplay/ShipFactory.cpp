@@ -1,5 +1,6 @@
 #include "gameplay/ShipFactory.hpp"
 
+#include "components/Altitude.hpp"
 #include "components/CollisionLayer.hpp"
 #include "components/Hitbox.hpp"
 #include "components/PlayerControlled.hpp"
@@ -39,6 +40,7 @@ Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
     registry.emplace<Hitbox>(entity, hitbox);
     // Ships collide with walls.
     registry.emplace<CollisionLayer>(entity, CollisionLayer{layer::Ship, layer::Wall});
+    registry.emplace<Altitude>(entity); // hovering at default height
 
     if (playerControlled) {
         registry.emplace<PlayerControlled>(entity);

@@ -1,5 +1,6 @@
 #include "systems/RenderCollectSystem.hpp"
 
+#include "components/Altitude.hpp"
 #include "components/PrevTransform.hpp"
 #include "components/ShipControl.hpp"
 #include "components/SpriteRender.hpp"
@@ -40,7 +41,13 @@ void render_collect(Registry& registry, Renderer& renderer, float alpha) {
         const float frameW = 1.0f / static_cast<float>(sprite.frameCount);
         const glm::vec2 uvMin{static_cast<float>(frame) * frameW, 0.0f};
         const glm::vec2 uvMax{static_cast<float>(frame + 1) * frameW, 1.0f};
-        renderer.draw(sprite.texture, position, sprite.size, rotation, uvMin, uvMax);
+
+        // Fall-away cue: shrink the sprite by altitude (if the entity has one).
+        glm::vec2 drawSize = sprite.size;
+        if (const Altitude* altitude = registry.try_get<Altitude>(entity)) {
+            drawSize *= altitude->visualScale;
+        }
+        renderer.draw(sprite.texture, position, drawSize, rotation, uvMin, uvMax);
     }
 }
 

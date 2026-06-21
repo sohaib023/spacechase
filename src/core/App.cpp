@@ -1,5 +1,6 @@
 #include "core/App.hpp"
 
+#include "components/Altitude.hpp"
 #include "components/CollisionLayer.hpp"
 #include "components/ShipStats.hpp"
 #include "components/Transform.hpp"
@@ -10,6 +11,7 @@
 #include "gameplay/WallFactory.hpp"
 #include "physics/Raycast.hpp"
 #include "systems/CollisionSystem.hpp"
+#include "systems/FloorAltitudeSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/RenderCollectSystem.hpp"
@@ -124,6 +126,14 @@ bool App::init() {
 
     m_debugTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/debug_white.png");
 
+    // Floor: a big platform (continuous meters) with a couple of void pits to
+    // fall into. (In-code for M3.6; a JSON level replaces it in M3.7.)
+    m_floorTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/floor.png");
+    m_voidTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/void.png");
+    m_level.floorRects.push_back(AABB{{0.0f, 0.0f}, {16.0f, 12.0f}});
+    m_level.voidRects.push_back(AABB{{-6.0f, -5.0f}, {2.0f, 2.0f}});
+    m_level.voidRects.push_back(AABB{{7.0f, 4.0f}, {1.5f, 1.5f}});
+
     SC_LOG_INFO("Space Chase initialized.");
     return true;
 }
@@ -170,12 +180,14 @@ void App::run() {
             if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT]) actions.turn -= 1.0f;
         }
 
-        // --- Apply input, then advance the fixed-step simulation ---
-        input_apply(m_world.registry, actions);
+        // --- Fixed-step simulation pipeline ---
         while (accumulator >= kFixedDt) {
             snapshot_prev_transforms(m_world.registry);
+            input_apply(m_world.registry, actions);
+            apply_fall_control(m_world.registry, m_fallConfig); // lock thrust if falling
             movement_step(m_world.registry, kFixedDt);
             collision_step(m_world.registry, kFixedDt);
+            floor_altitude_step(m_world.registry, m_level, m_fallConfig, m_spawn, kFixedDt);
             accumulator -= kFixedDt;
         }
         const float alpha = static_cast<float>(accumulator / kFixedDt);
@@ -195,12 +207,16 @@ void App::run() {
                 ImGui::Text("vel    (%.1f, %.1f) m/s", velocity.value.x, velocity.value.y);
                 ImGui::Text("speed  %.1f m/s", glm::length(velocity.value));
                 ImGui::Text("facing %.2f rad", transform.rotation);
+                if (const Altitude* altitude = reg.try_get<Altitude>(player)) {
+                    ImGui::Text("alt    %.2f m %s", altitude->z, altitude->falling ? "(falling)" : "");
+                }
                 ImGui::Separator();
                 ImGui::SliderFloat("acceleration", &stats.acceleration, 5.0f, 200.0f, "%.1f m/s2");
                 ImGui::SliderFloat("max speed", &stats.maxSpeed, 2.0f, 60.0f, "%.1f m/s");
                 ImGui::SliderFloat("turn speed", &stats.turnSpeed, 0.5f, 8.0f, "%.2f rad/s");
                 ImGui::SliderFloat("drag", &stats.drag, 0.0f, 5.0f);
                 ImGui::Checkbox("debug ray", &m_showDebugRay);
+                ImGui::Checkbox("control while falling", &m_fallConfig.controlWhileFalling);
                 ImGui::TextDisabled("WASD / arrow keys to fly");
             }
         }
@@ -208,8 +224,14 @@ void App::run() {
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
 
-        // --- Queue the world into the sprite batch ---
+        // --- Queue the world into the sprite batch (floor → void → entities) ---
         m_renderer.begin();
+        for (const AABB& floorRect : m_level.floorRects) {
+            m_renderer.draw(m_floorTexture, floorRect.center, floorRect.halfExtents * 2.0f, 0.0f);
+        }
+        for (const AABB& voidRect : m_level.voidRects) {
+            m_renderer.draw(m_voidTexture, voidRect.center, voidRect.halfExtents * 2.0f, 0.0f);
+        }
         render_collect(m_world.registry, m_renderer, alpha);
 
         // Debug ray: cast from the player along its facing, drawn as a thin beam

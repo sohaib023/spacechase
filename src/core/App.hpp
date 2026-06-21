@@ -7,9 +7,13 @@
 
 #include "data/DefinitionRegistry.hpp"
 #include "ecs/World.hpp"
+#include "gameplay/FallConfig.hpp"
+#include "gameplay/Level.hpp"
 #include "render/Camera.hpp"
 #include "render/Renderer.hpp"
 #include "resources/TextureRegistry.hpp"
+
+#include <glm/glm.hpp>
 
 struct SDL_Window;
 struct SDL_GPUDevice;
@@ -45,8 +49,13 @@ private:
 
     World m_world;             // entity registry + named handles (owns the sim)
     DefinitionRegistry m_defs; // loaded content definitions (source of truth)
+    Level m_level;             // floor + void rects (continuous meters)
+    FallConfig m_fallConfig;   // pseudo-3D falling tunables
+    glm::vec2 m_spawn{0.0f, 0.0f};
 
     TextureHandle m_debugTexture = kInvalidTexture; // debug-draw marker/beam
+    TextureHandle m_floorTexture = kInvalidTexture;
+    TextureHandle m_voidTexture = kInvalidTexture;
     bool m_showDebugRay = true;
 };
 
