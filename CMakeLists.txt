@@ -151,3 +151,35 @@ if(WIN32)
             $<TARGET_FILE_DIR:SpaceChase>
         VERBATIM)
 endif()
+
+# ---------------------------------------------------------------------------
+# Unit tests (doctest). Single-target policy holds: the test binary compiles the
+# pure-logic sources it exercises directly (no shared lib yet). Run via ctest.
+# ---------------------------------------------------------------------------
+enable_testing()
+
+add_executable(SpaceChase_tests
+    tests/test_main.cpp
+    tests/test_definitions.cpp
+    tests/test_movement.cpp
+    src/data/DefinitionRegistry.cpp   # exercised by test_definitions
+    src/systems/MovementSystem.cpp    # exercised by test_movement
+)
+target_include_directories(SpaceChase_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+# SDL3 is linked because DefinitionRegistry logs via SDL_Log; glm/EnTT/json for the logic.
+target_link_libraries(SpaceChase_tests PRIVATE
+    doctest::doctest SDL3::SDL3 glm::glm EnTT::EnTT nlohmann_json::nlohmann_json)
+target_compile_definitions(SpaceChase_tests PRIVATE
+    SC_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets"
+    GLM_FORCE_DEPTH_ZERO_TO_ONE)
+# Note: no -Werror here — doctest's header isn't built to our strict policy.
+
+add_test(NAME unit COMMAND SpaceChase_tests)
+
+if(WIN32)
+    add_custom_command(TARGET SpaceChase_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:SDL3::SDL3>
+            $<TARGET_FILE_DIR:SpaceChase_tests>
+        VERBATIM)
+endif()
