@@ -115,6 +115,8 @@ add_executable(SpaceChase
     src/resources/stb_image_impl.cpp
     src/render/Renderer.cpp
     src/data/DefinitionRegistry.cpp
+    src/physics/Overlap.cpp
+    src/physics/SpatialHash.cpp
     src/systems/InputSystem.cpp
     src/systems/MovementSystem.cpp
     src/systems/RenderCollectSystem.cpp
@@ -163,8 +165,12 @@ add_executable(SpaceChase_tests
     tests/test_main.cpp
     tests/test_definitions.cpp
     tests/test_movement.cpp
+    tests/test_overlap.cpp
+    tests/test_spatial_hash.cpp
     src/data/DefinitionRegistry.cpp   # exercised by test_definitions
     src/systems/MovementSystem.cpp    # exercised by test_movement
+    src/physics/Overlap.cpp           # exercised by test_overlap
+    src/physics/SpatialHash.cpp       # exercised by test_spatial_hash
 )
 target_include_directories(SpaceChase_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 # SDL3 is linked because DefinitionRegistry logs via SDL_Log; glm/EnTT/json for the logic.

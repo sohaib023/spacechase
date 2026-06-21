@@ -16,8 +16,8 @@ TEST_CASE("ship definitions load from JSON") {
     CHECK(player->id == "player_ship");
     CHECK(player->spriteSheet == "sprites/ship_sheet.png");
     CHECK(player->frameCount == 3);
-    CHECK(player->stats.acceleration == doctest::Approx(900.0f));
-    CHECK(player->stats.maxSpeed == doctest::Approx(600.0f));
+    CHECK(player->stats.acceleration == doctest::Approx(40.0f));
+    CHECK(player->stats.maxSpeed == doctest::Approx(20.0f));
     CHECK(player->stats.turnSpeed == doctest::Approx(3.2f));
     CHECK(player->stats.drag == doctest::Approx(1.2f));
 
