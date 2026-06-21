@@ -65,7 +65,7 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
     vbDesc.pitch = sizeof(Vertex);
     vbDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
 
-    SDL_GPUVertexAttribute attrs[3]{};
+    SDL_GPUVertexAttribute attrs[4]{};
     attrs[0].location = 0; // TEXCOORD0 -> position
     attrs[0].buffer_slot = 0;
     attrs[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
@@ -78,12 +78,16 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
     attrs[2].buffer_slot = 0;
     attrs[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
     attrs[2].offset = sizeof(float) * 4;
+    attrs[3].location = 3; // TEXCOORD3 -> emissive/unlit flag
+    attrs[3].buffer_slot = 0;
+    attrs[3].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT;
+    attrs[3].offset = sizeof(float) * 6;
 
     SDL_GPUVertexInputState vertexInput{};
     vertexInput.vertex_buffer_descriptions = &vbDesc;
     vertexInput.num_vertex_buffers = 1;
     vertexInput.vertex_attributes = attrs;
-    vertexInput.num_vertex_attributes = 3;
+    vertexInput.num_vertex_attributes = 4;
 
     SDL_GPUColorTargetBlendState blend{};
     blend.enable_blend = true;
@@ -199,7 +203,7 @@ void Renderer::begin() {
 }
 
 void Renderer::draw(TextureHandle albedo, TextureHandle normal, glm::vec2 pos, glm::vec2 size,
-                    float rotation, glm::vec2 uvMin, glm::vec2 uvMax) {
+                    float rotation, glm::vec2 uvMin, glm::vec2 uvMax, bool unlit) {
     if (albedo == kInvalidTexture) {
         return;
     }
@@ -210,10 +214,11 @@ void Renderer::draw(TextureHandle albedo, TextureHandle normal, glm::vec2 pos, g
 
     const float c = std::cos(rotation);
     const float s = std::sin(rotation);
+    const float e = unlit ? 1.0f : 0.0f;
     const glm::vec2 h = size * 0.5f;
     auto push = [&](float lx, float ly, float u, float v) {
         m_vertices.push_back(
-            {lx * c - ly * s + pos.x, lx * s + ly * c + pos.y, u, v, c, s});
+            {lx * c - ly * s + pos.x, lx * s + ly * c + pos.y, u, v, c, s, e});
     };
     // Two triangles (CCW): TL, TR, BR and TL, BR, BL. UV origin top-left.
     push(-h.x, h.y, uvMin.x, uvMin.y);

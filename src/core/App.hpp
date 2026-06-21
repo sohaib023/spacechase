@@ -10,10 +10,13 @@
 #include "gameplay/FallConfig.hpp"
 #include "gameplay/Level.hpp"
 #include "render/Camera.hpp"
+#include "render/CameraFollow.hpp"
 #include "render/Renderer.hpp"
 #include "resources/TextureRegistry.hpp"
 
 #include <glm/glm.hpp>
+
+#include <memory>
 
 struct SDL_Window;
 struct SDL_GPUDevice;
@@ -46,6 +49,8 @@ private:
     Renderer m_renderer;
     TextureRegistry m_textures;
     Camera2D m_camera;
+    std::unique_ptr<CameraFollow> m_cameraFollow; // swappable elastic follow
+    int m_cameraModel = 0;                         // 0 = SmoothDamp, 1 = Exponential
 
     World m_world;             // entity registry + named handles (owns the sim)
     DefinitionRegistry m_defs; // loaded content definitions (source of truth)
@@ -55,7 +60,7 @@ private:
 
     TextureHandle m_debugTexture = kInvalidTexture; // debug-draw marker/beam
     TextureHandle m_floorTexture = kInvalidTexture;
-    TextureHandle m_voidTexture = kInvalidTexture;
+    TextureHandle m_backgroundTexture = kInvalidTexture; // unlit void backdrop
     bool m_showDebugRay = true;
 
     glm::vec4 m_ambient{0.12f, 0.12f, 0.18f, 1.0f};   // rgb + strength

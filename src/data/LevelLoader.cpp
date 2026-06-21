@@ -41,9 +41,6 @@ bool load_level(const std::filesystem::path& path, LevelData& out) {
         for (const nlohmann::json& rect : json.value("floor", nlohmann::json::array())) {
             out.level.floorRects.push_back(read_rect(rect));
         }
-        for (const nlohmann::json& rect : json.value("voids", nlohmann::json::array())) {
-            out.level.voidRects.push_back(read_rect(rect));
-        }
         for (const nlohmann::json& wall : json.value("walls", nlohmann::json::array())) {
             WallInstance instance;
             instance.def = wall.at("def").get<std::string>();

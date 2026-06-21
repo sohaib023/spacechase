@@ -17,13 +17,15 @@ struct VSInput {
     float2 a_pos : TEXCOORD0; // world position (rotation already baked in by CPU)
     float2 a_uv  : TEXCOORD1;
     float2 a_rot : TEXCOORD2; // (cos, sin) of the sprite's rotation
+    float  a_emissive : TEXCOORD3; // 1 = unlit (show albedo as-is), 0 = lit
 };
 
 struct VSOutput {
-    float4 position : SV_Position;
-    float2 v_uv     : TEXCOORD0;
-    float2 v_world  : TEXCOORD1; // world xy (meters)
-    float2 v_rot    : TEXCOORD2; // (cos, sin), constant across the quad
+    float4 position  : SV_Position;
+    float2 v_uv      : TEXCOORD0;
+    float2 v_world   : TEXCOORD1; // world xy (meters)
+    float2 v_rot     : TEXCOORD2; // (cos, sin), constant across the quad
+    float  v_emissive : TEXCOORD3;
 };
 
 VSOutput vs_main(VSInput input) {
@@ -32,6 +34,7 @@ VSOutput vs_main(VSInput input) {
     output.v_uv = input.a_uv;
     output.v_world = input.a_pos;
     output.v_rot = input.a_rot;
+    output.v_emissive = input.a_emissive;
     return output;
 }
 
@@ -57,6 +60,12 @@ cbuffer LightsUBO : register(b0, space3) {
 
 float4 ps_main(VSOutput input) : SV_Target {
     float4 albedo = u_albedo.Sample(u_sampler, input.v_uv);
+
+    // Unlit sprites (e.g. the void background, "off into infinity") are shown
+    // at full albedo, untouched by lights/ambient.
+    if (input.v_emissive > 0.5f) {
+        return albedo;
+    }
 
     // Unpack the tangent-space normal and rotate its in-plane part by the
     // sprite rotation (SAME cos/sin the CPU baked into the vertex positions).

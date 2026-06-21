@@ -25,9 +25,10 @@ Entity make_ship(Registry& reg, glm::vec2 pos, float z) {
 }
 
 Level floor_with_pit() {
+    // Two floor rects with a gap at x in [4,6] (the void / pit).
     Level lvl;
-    lvl.floorRects.push_back(AABB{{0.0f, 0.0f}, {10.0f, 10.0f}});
-    lvl.voidRects.push_back(AABB{{5.0f, 0.0f}, {1.0f, 1.0f}}); // pit at x in [4,6]
+    lvl.floorRects.push_back(AABB{{-3.0f, 0.0f}, {7.0f, 10.0f}}); // x in [-10, 4]
+    lvl.floorRects.push_back(AABB{{8.0f, 0.0f}, {2.0f, 10.0f}});  // x in [6, 10]
     return lvl;
 }
 constexpr float kDt = 1.0f / 60.0f;

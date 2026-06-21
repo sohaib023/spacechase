@@ -1,8 +1,8 @@
 #pragma once
 
-// The level's floor in continuous meters: a union of floor rectangles with
-// optional void rectangles (holes) cut out of them. A point has floor if it is
-// inside some floor rect and not inside any void rect. (Single layer for M3.)
+// The level's floor in continuous meters: a union of floor rectangles. Gaps
+// between them are void (off into infinity) — the void background shows through.
+// A point has floor if it is inside some floor rect. (Single layer for M3.)
 
 #include "physics/Shapes.hpp"
 
@@ -14,25 +14,14 @@ namespace sc {
 
 struct Level {
     std::vector<AABB> floorRects;
-    std::vector<AABB> voidRects;
 
     bool has_floor(glm::vec2 point) const {
-        bool onFloor = false;
         for (const AABB& rect : floorRects) {
             if (inside(rect, point)) {
-                onFloor = true;
-                break;
+                return true;
             }
         }
-        if (!onFloor) {
-            return false;
-        }
-        for (const AABB& hole : voidRects) {
-            if (inside(hole, point)) {
-                return false;
-            }
-        }
-        return true;
+        return false;
     }
 
 private:

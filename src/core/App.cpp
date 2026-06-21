@@ -4,6 +4,7 @@
 #include "components/CollisionLayer.hpp"
 #include "components/Health.hpp"
 #include "components/Light.hpp"
+#include "components/PrevTransform.hpp"
 #include "components/ShipStats.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
@@ -124,7 +125,7 @@ bool App::init() {
     const TextureHandle shipNormal = loadNormal(playerDef->normalSheet);
 
     m_floorTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/floor.png");
-    m_voidTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/void.png");
+    m_backgroundTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/background.png");
     m_debugTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/debug_white.png");
 
     // Load wall definitions and the level (floor / voids / wall instances).
@@ -173,6 +174,10 @@ bool App::init() {
     debugLight.height = 2.0f;
     debugLight.range = 16.0f;
     m_world.registry.emplace<Light>(m_debugLight, debugLight);
+
+    // Camera starts on the ship and elastically follows it (translation only).
+    m_camera.position = m_spawn;
+    m_cameraFollow = std::make_unique<SmoothDampFollow>();
 
     SC_LOG_INFO("Space Chase initialized.");
     return true;
@@ -231,6 +236,16 @@ void App::run() {
             accumulator -= kFixedDt;
         }
         const float alpha = static_cast<float>(accumulator / kFixedDt);
+
+        // --- Elastic camera follow (translation only), targets the ship's
+        //     interpolated render position. Render-time, real frame dt. ---
+        if (m_world.registry.valid(m_world.playerShip)) {
+            const Transform& cur = m_world.registry.get<Transform>(m_world.playerShip);
+            const PrevTransform& prev = m_world.registry.get<PrevTransform>(m_world.playerShip);
+            const glm::vec2 target = glm::mix(prev.position, cur.position, alpha);
+            m_camera.position =
+                m_cameraFollow->update(m_camera.position, target, static_cast<float>(frameTime));
+        }
 
         // --- UI ---
         ImGui_ImplSDLGPU3_NewFrame();
@@ -302,16 +317,42 @@ void App::run() {
         }
         ImGui::End();
 
+        if (ImGui::Begin("Camera")) {
+            const char* models[] = {"SmoothDamp (no overshoot)", "Exponential lag"};
+            if (ImGui::Combo("follow model", &m_cameraModel, models, 2)) {
+                if (m_cameraModel == 0) {
+                    m_cameraFollow = std::make_unique<SmoothDampFollow>();
+                } else {
+                    m_cameraFollow = std::make_unique<ExponentialFollow>();
+                }
+            }
+            if (auto* sd = dynamic_cast<SmoothDampFollow*>(m_cameraFollow.get())) {
+                ImGui::SliderFloat("smooth time (s)", &sd->smoothTime, 0.02f, 1.0f);
+            } else if (auto* ex = dynamic_cast<ExponentialFollow*>(m_cameraFollow.get())) {
+                ImGui::SliderFloat("responsiveness", &ex->responsiveness, 1.0f, 20.0f);
+            }
+        }
+        ImGui::End();
+
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
 
-        // --- Queue the world into the sprite batch (floor → void → entities) ---
+        // --- Queue the world (background → floor → entities) ---
         m_renderer.begin();
+        {
+            // One unlit, camera-locked void backdrop behind everything (the void
+            // is "off into infinity"; pits are gaps in the floor that reveal it).
+            int pxW = 0;
+            int pxH = 0;
+            SDL_GetWindowSizeInPixels(m_window, &pxW, &pxH);
+            const float viewW = static_cast<float>(pxW) / (m_camera.pixelsPerMeter * m_camera.zoom);
+            const float viewH = static_cast<float>(pxH) / (m_camera.pixelsPerMeter * m_camera.zoom);
+            m_renderer.draw(m_backgroundTexture, m_camera.position,
+                            glm::vec2(viewW * 1.2f, viewH * 1.2f), 0.0f, glm::vec2(0.0f),
+                            glm::vec2(1.0f), /*unlit=*/true);
+        }
         for (const AABB& floorRect : m_level.floorRects) {
             m_renderer.draw(m_floorTexture, floorRect.center, floorRect.halfExtents * 2.0f, 0.0f);
-        }
-        for (const AABB& voidRect : m_level.voidRects) {
-            m_renderer.draw(m_voidTexture, voidRect.center, voidRect.halfExtents * 2.0f, 0.0f);
         }
         render_collect(m_world.registry, m_renderer, alpha);
 
@@ -326,9 +367,11 @@ void App::run() {
             const float len = hit.hit ? hit.t : kMaxDist;
             const glm::vec2 mid = pt.position + dir * (len * 0.5f);
             const float phi = std::atan2(dir.y, dir.x);
-            m_renderer.draw(m_debugTexture, mid, glm::vec2(len, 0.06f), phi);
+            m_renderer.draw(m_debugTexture, mid, glm::vec2(len, 0.06f), phi, glm::vec2(0.0f),
+                            glm::vec2(1.0f), /*unlit=*/true);
             if (hit.hit) {
-                m_renderer.draw(m_debugTexture, hit.point, glm::vec2(0.4f, 0.4f), 0.0f);
+                m_renderer.draw(m_debugTexture, hit.point, glm::vec2(0.4f, 0.4f), 0.0f,
+                                glm::vec2(0.0f), glm::vec2(1.0f), /*unlit=*/true);
             }
         }
 

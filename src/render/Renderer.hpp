@@ -29,12 +29,15 @@ public:
     void begin();
 
     // Queue a sprite (meters). `normal` selects the normal map; pass nothing /
-    // kInvalidTexture for unlit-ish sprites (a flat normal is substituted).
+    // kInvalidTexture for sprites without one (a flat normal is substituted).
+    // `unlit` shows the albedo at full brightness (void background, debug viz).
     void draw(TextureHandle albedo, TextureHandle normal, glm::vec2 pos, glm::vec2 size,
-              float rotation, glm::vec2 uvMin = glm::vec2(0.0f), glm::vec2 uvMax = glm::vec2(1.0f));
+              float rotation, glm::vec2 uvMin = glm::vec2(0.0f), glm::vec2 uvMax = glm::vec2(1.0f),
+              bool unlit = false);
     void draw(TextureHandle albedo, glm::vec2 pos, glm::vec2 size, float rotation,
-              glm::vec2 uvMin = glm::vec2(0.0f), glm::vec2 uvMax = glm::vec2(1.0f)) {
-        draw(albedo, kInvalidTexture, pos, size, rotation, uvMin, uvMax);
+              glm::vec2 uvMin = glm::vec2(0.0f), glm::vec2 uvMax = glm::vec2(1.0f),
+              bool unlit = false) {
+        draw(albedo, kInvalidTexture, pos, size, rotation, uvMin, uvMax, unlit);
     }
 
     void upload(SDL_GPUCommandBuffer* cmd); // outside a render pass
@@ -49,6 +52,7 @@ private:
         float x, y; // world position (meters)
         float u, v; // texcoord
         float c, s; // sprite rotation (cos, sin), for normal rotation
+        float e;    // emissive/unlit flag (1 = show albedo as-is)
     };
     struct SpriteTex {
         TextureHandle albedo;

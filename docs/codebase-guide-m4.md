@@ -69,6 +69,20 @@ the HLSL is written to feed it later unchanged.
 - **`LightsUBO` byte layout** must match the HLSL cbuffer (`static_assert` in the header).
 - **Two samplers always bound** (flat-normal fallback) — required by the pipeline.
 
+## 5b. Post-M4 fixes
+
+- **Void is unlit.** The lit shader has a per-vertex `emissive` flag (`Renderer::draw(..., unlit)`);
+  when set it returns the albedo untouched by lights. The void/background uses it.
+- **Void is one background, not squares.** `Level` dropped `voidRects` — floor is now a union of
+  floor rects and **void = the gaps**. App draws a single **unlit, camera-locked background quad**
+  (`background.png`) behind everything; the floor rects (lit) draw on top and pits reveal the
+  backdrop. (Parallax-ready: offset the backdrop by `camera * factor` later.)
+- **Elastic camera follow.** `render/CameraFollow.hpp` defines a swappable `CameraFollow` interface
+  with two models — `SmoothDampFollow` (critically damped, no overshoot) and `ExponentialFollow`
+  (exponential lag). App holds one (`std::unique_ptr`), targets the ship's **interpolated** position
+  each frame with the real frame dt, and **translates only** (never rotates). Switchable + tunable in
+  the Camera ImGui panel.
+
 ## 6. What M5 changes (next, per brief §9)
 
 - **Abilities + projectiles**: the data-driven firing pipeline, projectile lifecycle, a few ability
