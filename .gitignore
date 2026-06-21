@@ -1,0 +1,23 @@
+# Build output
+/build/
+/out/
+/cmake-build-*/
+
+# CMake / clangd caches
+/.cache/
+CMakeUserPresets.json
+
+# FetchContent download cache (kept out of VCS)
+/_deps/
+
+# IDE cruft
+/.vs/
+/.idea/
+*.user
+
+# ImGui runtime-generated window layout (per-user, not source)
+imgui.ini
+
+# OS cruft
+.DS_Store
+Thumbs.db

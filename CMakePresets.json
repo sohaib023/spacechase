@@ -1,0 +1,71 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 24, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "generator": "Ninja Multi-Config",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "windows-clang-cl",
+      "displayName": "Windows (clang-cl, default)",
+      "description": "Primary dev toolchain: Clang front-end, MSVC ABI, PDB debug info.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang-cl",
+        "CMAKE_CXX_COMPILER": "clang-cl"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "windows-msvc",
+      "displayName": "Windows (MSVC)",
+      "description": "Fallback/verification toolchain using the native MSVC compiler.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-clang",
+      "displayName": "Linux (Clang)",
+      "description": "Stub for future CI; not used until cross-platform work begins.",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "macos-clang",
+      "displayName": "macOS (Clang)",
+      "description": "Stub for future CI; not used until cross-platform work begins.",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-clang-cl-debug",   "configurePreset": "windows-clang-cl", "configuration": "Debug" },
+    { "name": "windows-clang-cl-release", "configurePreset": "windows-clang-cl", "configuration": "Release" },
+    { "name": "windows-msvc-debug",       "configurePreset": "windows-msvc",     "configuration": "Debug" },
+    { "name": "windows-msvc-release",     "configurePreset": "windows-msvc",     "configuration": "Release" },
+    { "name": "linux-clang-debug",        "configurePreset": "linux-clang",      "configuration": "Debug" },
+    { "name": "macos-clang-debug",        "configurePreset": "macos-clang",      "configuration": "Debug" }
+  ]
+}

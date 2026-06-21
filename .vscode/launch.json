@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // MSVC debugger (from the Microsoft C/C++ extension). Works on clang-cl
+      // builds because they emit PDB debug info. Adjust "configuration" in the
+      // path if you debug a Release build.
+      "name": "Debug SpaceChase (clang-cl)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/windows-clang-cl/bin/Debug/SpaceChase.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "preLaunchTask": "CMake: build"
+    },
+    {
+      "name": "Debug SpaceChase (MSVC)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/windows-msvc/bin/Debug/SpaceChase.exe",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ]
+}

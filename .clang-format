@@ -1,0 +1,15 @@
+# House style for Space Chase. Based on LLVM with a wider column and 4-space indent.
+BasedOnStyle: LLVM
+Standard: c++20
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 100
+PointerAlignment: Left
+NamespaceIndentation: None
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+FixNamespaceComments: true
+IncludeBlocks: Regroup
+SortIncludes: true

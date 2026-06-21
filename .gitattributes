@@ -1,0 +1,13 @@
+# Normalize line endings to LF in the repo for cross-platform consistency.
+# (Matches .editorconfig; avoids CRLF churn between Windows and Linux/macOS.)
+* text=auto eol=lf
+
+# Binary assets must never be line-ending converted.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.tga  binary
+*.wav  binary
+*.ogg  binary
+*.ttf  binary
+*.bin  binary
