@@ -1,6 +1,7 @@
 {
   "id": "crate",
   "sprite": "sprites/crate.png",
+  "normal": "sprites/crate_normal.png",
   "destructible": true,
   "health": 100.0,
   "halfExtents": [1.5, 1.5]

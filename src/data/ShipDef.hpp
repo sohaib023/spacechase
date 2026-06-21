@@ -21,6 +21,7 @@ struct ShipDef {
     std::string id;
     std::string displayName;
     std::string spriteSheet;       // path relative to SC_ASSET_DIR
+    std::string normalSheet;       // normal map path (optional)
     int frameCount = 1;            // horizontal frames in the sheet
     glm::vec2 frameSize{1.0f, 1.0f}; // meters
     float hitboxRadius = 0.5f;     // meters (circle collider)

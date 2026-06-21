@@ -15,7 +15,7 @@
 namespace sc {
 
 Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
-                  glm::vec2 position, float facing, bool playerControlled) {
+                  TextureHandle normal, glm::vec2 position, float facing, bool playerControlled) {
     const Entity entity = registry.create();
 
     // Transform and PrevTransform start equal so the first frame's interpolation
@@ -29,6 +29,7 @@ Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
 
     SpriteRender sprite;
     sprite.texture = texture;
+    sprite.normal = normal;
     sprite.size = def.frameSize;
     sprite.frameCount = def.frameCount;
     sprite.frame = def.frameCount > 1 ? def.frameCount / 2 : 0;

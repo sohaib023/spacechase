@@ -23,6 +23,7 @@ ShipDef parse_ship(const nlohmann::json& j) {
 
     const nlohmann::json& sprite = j.at("sprite");
     def.spriteSheet = sprite.at("sheet").get<std::string>();
+    def.normalSheet = sprite.value("normal", std::string{});
     def.frameCount = sprite.value("frameCount", 1);
     def.frameSize = read_vec2(sprite.at("frameSize"));
 
@@ -42,6 +43,7 @@ WallDef parse_wall(const nlohmann::json& j) {
     WallDef def;
     def.id = j.at("id").get<std::string>();
     def.sprite = j.at("sprite").get<std::string>();
+    def.normal = j.value("normal", std::string{});
     def.destructible = j.value("destructible", false);
     def.health = j.value("health", 0.0f);
     if (j.contains("halfExtents")) {

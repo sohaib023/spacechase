@@ -13,6 +13,7 @@ namespace sc {
 struct WallDef {
     std::string id;
     std::string sprite;             // path relative to SC_ASSET_DIR
+    std::string normal;             // normal map path (optional)
     bool destructible = false;
     float health = 0.0f;            // used when destructible
     glm::vec2 halfExtents{1.0f, 1.0f}; // default size (instances may override)

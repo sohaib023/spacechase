@@ -116,6 +116,12 @@ bool App::init() {
     if (shipTexture == kInvalidTexture) {
         return false;
     }
+    // Optional normal map (empty path → flat-normal fallback in the renderer).
+    const auto loadNormal = [this](const std::string& rel) {
+        return rel.empty() ? kInvalidTexture
+                           : m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/" + rel);
+    };
+    const TextureHandle shipNormal = loadNormal(playerDef->normalSheet);
 
     m_floorTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/floor.png");
     m_voidTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/void.png");
@@ -140,13 +146,14 @@ bool App::init() {
         }
         const TextureHandle wallTexture =
             m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/" + wallDef->sprite);
+        const TextureHandle wallNormal = loadNormal(wallDef->normal);
         const glm::vec2 halfExtents =
             instance.hasHalfExtents ? instance.halfExtents : wallDef->halfExtents;
-        spawn_wall(m_world.registry, wallTexture, instance.center, halfExtents,
+        spawn_wall(m_world.registry, wallTexture, wallNormal, instance.center, halfExtents,
                    wallDef->destructible, wallDef->health);
     }
 
-    m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture, m_spawn,
+    m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture, shipNormal, m_spawn,
                                     /*facing=*/0.0f, /*playerControlled=*/true);
 
     // A draggable debug point light (ImGui-controlled) to exercise the lighting.

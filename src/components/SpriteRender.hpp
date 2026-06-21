@@ -11,9 +11,10 @@ namespace sc {
 
 struct SpriteRender {
     TextureHandle texture = kInvalidTexture;
-    glm::vec2 size{1.0f, 1.0f}; // world size (meters) of one frame
-    int frameCount = 1;         // horizontal frames in the sheet
-    int frame = 0;              // currently selected frame
+    TextureHandle normal = kInvalidTexture; // normal map (flat fallback if invalid)
+    glm::vec2 size{1.0f, 1.0f};             // world size (meters) of one frame
+    int frameCount = 1;                     // horizontal frames in the sheet
+    int frame = 0;                          // currently selected frame
 };
 
 } // namespace sc

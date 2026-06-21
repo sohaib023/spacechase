@@ -11,8 +11,8 @@
 
 namespace sc {
 
-Entity spawn_wall(Registry& registry, TextureHandle texture, glm::vec2 center,
-                  glm::vec2 halfExtents, bool destructible, float health) {
+Entity spawn_wall(Registry& registry, TextureHandle texture, TextureHandle normal,
+                  glm::vec2 center, glm::vec2 halfExtents, bool destructible, float health) {
     const Entity entity = registry.create();
 
     registry.emplace<Transform>(entity, Transform{center, 0.0f});
@@ -20,6 +20,7 @@ Entity spawn_wall(Registry& registry, TextureHandle texture, glm::vec2 center,
 
     SpriteRender sprite;
     sprite.texture = texture;
+    sprite.normal = normal;
     sprite.size = halfExtents * 2.0f; // full extent in meters
     sprite.frameCount = 1;
     sprite.frame = 0;

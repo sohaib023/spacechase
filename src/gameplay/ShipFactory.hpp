@@ -13,6 +13,6 @@ namespace sc {
 struct ShipDef;
 
 Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
-                  glm::vec2 position, float facing, bool playerControlled);
+                  TextureHandle normal, glm::vec2 position, float facing, bool playerControlled);
 
 } // namespace sc

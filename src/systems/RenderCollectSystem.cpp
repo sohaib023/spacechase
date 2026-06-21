@@ -47,7 +47,7 @@ void render_collect(Registry& registry, Renderer& renderer, float alpha) {
         if (const Altitude* altitude = registry.try_get<Altitude>(entity)) {
             drawSize *= altitude->visualScale;
         }
-        renderer.draw(sprite.texture, position, drawSize, rotation, uvMin, uvMax);
+        renderer.draw(sprite.texture, sprite.normal, position, drawSize, rotation, uvMin, uvMax);
     }
 }
 
