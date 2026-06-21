@@ -54,6 +54,26 @@ bool load_level(const std::filesystem::path& path, LevelData& out) {
             }
             out.walls.push_back(instance);
         }
+        for (const nlohmann::json& light : json.value("lights", nlohmann::json::array())) {
+            LightInstance instance;
+            instance.light.type = light.value("type", std::string("point")) == "directional"
+                                      ? LightType::Directional
+                                      : LightType::Point;
+            if (light.contains("position")) {
+                instance.position = read_vec2(light.at("position"));
+            }
+            const nlohmann::json& color = light.at("color");
+            instance.light.color =
+                glm::vec3(color.at(0).get<float>(), color.at(1).get<float>(),
+                          color.at(2).get<float>());
+            instance.light.intensity = light.value("intensity", 1.0f);
+            instance.light.height = light.value("height", 2.0f);
+            instance.light.range = light.value("range", 10.0f);
+            if (light.contains("direction")) {
+                instance.light.direction = read_vec2(light.at("direction"));
+            }
+            out.lights.push_back(instance);
+        }
     } catch (const std::exception& e) {
         SC_LOG_ERROR("Failed to parse level %s: %s", path.string().c_str(), e.what());
         return false;

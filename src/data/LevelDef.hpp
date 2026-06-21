@@ -5,6 +5,7 @@
 // reference wall definitions by id. App instantiates the walls (resolving
 // textures); this struct stays GPU-free so LevelLoader is unit-testable.
 
+#include "components/Light.hpp"
 #include "gameplay/Level.hpp"
 
 #include <glm/glm.hpp>
@@ -21,10 +22,16 @@ struct WallInstance {
     bool hasHalfExtents = false; // false → use the WallDef's default size
 };
 
+struct LightInstance {
+    Light light;
+    glm::vec2 position{0.0f, 0.0f}; // for point lights
+};
+
 struct LevelData {
     Level level;                       // floor + void rects
     glm::vec2 playerSpawn{0.0f, 0.0f};
     std::vector<WallInstance> walls;
+    std::vector<LightInstance> lights;
 };
 
 } // namespace sc

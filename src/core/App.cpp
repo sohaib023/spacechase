@@ -156,6 +156,13 @@ bool App::init() {
     m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture, shipNormal, m_spawn,
                                     /*facing=*/0.0f, /*playerControlled=*/true);
 
+    // Lights from the level (directional + point), as Transform + Light entities.
+    for (const LightInstance& instance : levelData.lights) {
+        const Entity lightEntity = m_world.registry.create();
+        m_world.registry.emplace<Transform>(lightEntity, Transform{instance.position, 0.0f});
+        m_world.registry.emplace<Light>(lightEntity, instance.light);
+    }
+
     // A draggable debug point light (ImGui-controlled) to exercise the lighting.
     m_debugLight = m_world.registry.create();
     m_world.registry.emplace<Transform>(m_debugLight, Transform{{4.0f, 2.0f}, 0.0f});

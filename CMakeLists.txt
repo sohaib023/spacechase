@@ -177,11 +177,13 @@ add_executable(SpaceChase_tests
     tests/test_raycast.cpp
     tests/test_falling.cpp
     tests/test_level.cpp
+    tests/test_lights.cpp
     src/data/DefinitionRegistry.cpp   # exercised by test_definitions + test_level
     src/data/LevelLoader.cpp          # exercised by test_level
     src/systems/MovementSystem.cpp    # exercised by test_movement
     src/systems/CollisionSystem.cpp   # exercised by test_collision_resolve
     src/systems/FloorAltitudeSystem.cpp # exercised by test_falling
+    src/systems/LightingSystem.cpp    # exercised by test_lights
     src/physics/Overlap.cpp           # exercised by test_overlap + collision
     src/physics/SpatialHash.cpp       # exercised by test_spatial_hash + collision
     src/physics/Raycast.cpp           # exercised by test_raycast
