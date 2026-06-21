@@ -123,6 +123,7 @@ add_executable(SpaceChase
     src/systems/MovementSystem.cpp
     src/systems/CollisionSystem.cpp
     src/systems/FloorAltitudeSystem.cpp
+    src/systems/LightingSystem.cpp
     src/systems/RenderCollectSystem.cpp
     src/gameplay/ShipFactory.cpp
     src/gameplay/WallFactory.cpp

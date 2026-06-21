@@ -3,6 +3,7 @@
 #include "components/Altitude.hpp"
 #include "components/CollisionLayer.hpp"
 #include "components/Health.hpp"
+#include "components/Light.hpp"
 #include "components/ShipStats.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
@@ -18,6 +19,7 @@
 #include "systems/CollisionSystem.hpp"
 #include "systems/FloorAltitudeSystem.hpp"
 #include "systems/InputSystem.hpp"
+#include "systems/LightingSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/RenderCollectSystem.hpp"
 
@@ -147,6 +149,17 @@ bool App::init() {
     m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture, m_spawn,
                                     /*facing=*/0.0f, /*playerControlled=*/true);
 
+    // A draggable debug point light (ImGui-controlled) to exercise the lighting.
+    m_debugLight = m_world.registry.create();
+    m_world.registry.emplace<Transform>(m_debugLight, Transform{{4.0f, 2.0f}, 0.0f});
+    Light debugLight;
+    debugLight.type = LightType::Point;
+    debugLight.color = {1.0f, 0.9f, 0.8f};
+    debugLight.intensity = 3.0f;
+    debugLight.height = 2.0f;
+    debugLight.range = 16.0f;
+    m_world.registry.emplace<Light>(m_debugLight, debugLight);
+
     SC_LOG_INFO("Space Chase initialized.");
     return true;
 }
@@ -256,6 +269,25 @@ void App::run() {
             }
         }
         ImGui::End();
+
+        if (ImGui::Begin("Lighting")) {
+            ImGui::ColorEdit3("ambient", &m_ambient.x);
+            ImGui::SliderFloat("ambient strength", &m_ambient.w, 0.0f, 1.0f);
+            ImGui::SliderFloat("shininess", &m_lightParams.x, 1.0f, 128.0f);
+            ImGui::SliderFloat("specular", &m_lightParams.y, 0.0f, 2.0f);
+            if (m_world.registry.valid(m_debugLight)) {
+                Transform& lt = m_world.registry.get<Transform>(m_debugLight);
+                Light& li = m_world.registry.get<Light>(m_debugLight);
+                ImGui::SeparatorText("debug point light");
+                ImGui::DragFloat2("position", &lt.position.x, 0.1f);
+                ImGui::SliderFloat("height", &li.height, 0.1f, 10.0f);
+                ImGui::SliderFloat("range", &li.range, 1.0f, 40.0f);
+                ImGui::SliderFloat("intensity", &li.intensity, 0.0f, 8.0f);
+                ImGui::ColorEdit3("color", &li.color.x);
+            }
+        }
+        ImGui::End();
+
         ImGui::Render();
         ImDrawData* drawData = ImGui::GetDrawData();
 
@@ -318,8 +350,10 @@ void App::run() {
             target.load_op = SDL_GPU_LOADOP_CLEAR;
             target.store_op = SDL_GPU_STOREOP_STORE;
 
+            const LightsUBO lights = collect_lights(m_world.registry, m_ambient, m_lightParams);
+
             SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(cmd, &target, 1, nullptr);
-            m_renderer.render(cmd, pass, viewProj, m_textures);
+            m_renderer.render(cmd, pass, viewProj, m_textures, lights);
             ImGui_ImplSDLGPU3_RenderDrawData(drawData, cmd, pass);
             SDL_EndGPURenderPass(pass);
         }

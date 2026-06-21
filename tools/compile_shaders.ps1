@@ -20,8 +20,10 @@ Write-Host "Using dxc: $dxc"
 
 # (source.hlsl, entrypoint, profile, output) tuples.
 $jobs = @(
-    @{ src = "sprite.hlsl"; entry = "vs_main"; profile = "vs_6_0"; out = "sprite.vert.dxil" },
-    @{ src = "sprite.hlsl"; entry = "ps_main"; profile = "ps_6_0"; out = "sprite.frag.dxil" }
+    @{ src = "sprite.hlsl";     entry = "vs_main"; profile = "vs_6_0"; out = "sprite.vert.dxil" },
+    @{ src = "sprite.hlsl";     entry = "ps_main"; profile = "ps_6_0"; out = "sprite.frag.dxil" },
+    @{ src = "lit_sprite.hlsl"; entry = "vs_main"; profile = "vs_6_0"; out = "lit_sprite.vert.dxil" },
+    @{ src = "lit_sprite.hlsl"; entry = "ps_main"; profile = "ps_6_0"; out = "lit_sprite.frag.dxil" }
 )
 foreach ($j in $jobs) {
     $in = Join-Path $shaderDir $j.src

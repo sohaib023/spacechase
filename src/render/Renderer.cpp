@@ -48,10 +48,12 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
     m_vertices.reserve(kMaxVertices);
 
     const std::string shaderDir = std::string(SC_ASSET_DIR) + "/shaders/compiled/";
-    SDL_GPUShader* vs = load_shader(gpu, shaderDir + "sprite.vert.dxil",
+    // Vertex: 1 uniform buffer (camera). Fragment: 2 samplers (albedo + normal),
+    // 1 uniform buffer (lights).
+    SDL_GPUShader* vs = load_shader(gpu, shaderDir + "lit_sprite.vert.dxil",
                                     SDL_GPU_SHADERSTAGE_VERTEX, "vs_main", 0, 1);
-    SDL_GPUShader* ps = load_shader(gpu, shaderDir + "sprite.frag.dxil",
-                                    SDL_GPU_SHADERSTAGE_FRAGMENT, "ps_main", 1, 0);
+    SDL_GPUShader* ps = load_shader(gpu, shaderDir + "lit_sprite.frag.dxil",
+                                    SDL_GPU_SHADERSTAGE_FRAGMENT, "ps_main", 2, 1);
     if (vs == nullptr || ps == nullptr) {
         if (vs) SDL_ReleaseGPUShader(gpu, vs);
         if (ps) SDL_ReleaseGPUShader(gpu, ps);
@@ -63,7 +65,7 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
     vbDesc.pitch = sizeof(Vertex);
     vbDesc.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
 
-    SDL_GPUVertexAttribute attrs[2]{};
+    SDL_GPUVertexAttribute attrs[3]{};
     attrs[0].location = 0; // TEXCOORD0 -> position
     attrs[0].buffer_slot = 0;
     attrs[0].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
@@ -72,12 +74,16 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
     attrs[1].buffer_slot = 0;
     attrs[1].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
     attrs[1].offset = sizeof(float) * 2;
+    attrs[2].location = 2; // TEXCOORD2 -> (cos, sin) of sprite rotation
+    attrs[2].buffer_slot = 0;
+    attrs[2].format = SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2;
+    attrs[2].offset = sizeof(float) * 4;
 
     SDL_GPUVertexInputState vertexInput{};
     vertexInput.vertex_buffer_descriptions = &vbDesc;
     vertexInput.num_vertex_buffers = 1;
     vertexInput.vertex_attributes = attrs;
-    vertexInput.num_vertex_attributes = 2;
+    vertexInput.num_vertex_attributes = 3;
 
     SDL_GPUColorTargetBlendState blend{};
     blend.enable_blend = true;
@@ -141,7 +147,49 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
         return false;
     }
 
-    SC_LOG_INFO("Renderer initialized (sprite batch, max %d sprites).", kMaxSprites);
+    // 1x1 "flat" normal map (0,0,1) bound at slot 1 for sprites without one, so
+    // the 2-sampler pipeline always has both textures bound.
+    {
+        SDL_GPUTextureCreateInfo texInfo{};
+        texInfo.type = SDL_GPU_TEXTURETYPE_2D;
+        texInfo.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        texInfo.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        texInfo.width = 1;
+        texInfo.height = 1;
+        texInfo.layer_count_or_depth = 1;
+        texInfo.num_levels = 1;
+        m_flatNormal = SDL_CreateGPUTexture(gpu, &texInfo);
+
+        const Uint8 flat[4] = {128, 128, 255, 255}; // encodes (0,0,1)
+        SDL_GPUTransferBufferCreateInfo tbi{};
+        tbi.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        tbi.size = sizeof(flat);
+        SDL_GPUTransferBuffer* tb = SDL_CreateGPUTransferBuffer(gpu, &tbi);
+        SDL_memcpy(SDL_MapGPUTransferBuffer(gpu, tb, false), flat, sizeof(flat));
+        SDL_UnmapGPUTransferBuffer(gpu, tb);
+
+        SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(gpu);
+        SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(cmd);
+        SDL_GPUTextureTransferInfo src{};
+        src.transfer_buffer = tb;
+        src.pixels_per_row = 1;
+        src.rows_per_layer = 1;
+        SDL_GPUTextureRegion dst{};
+        dst.texture = m_flatNormal;
+        dst.w = 1;
+        dst.h = 1;
+        dst.d = 1;
+        SDL_UploadToGPUTexture(copyPass, &src, &dst, false);
+        SDL_EndGPUCopyPass(copyPass);
+        SDL_SubmitGPUCommandBuffer(cmd);
+        SDL_ReleaseGPUTransferBuffer(gpu, tb);
+    }
+    if (m_flatNormal == nullptr) {
+        SC_LOG_ERROR("Failed to create flat-normal texture: %s", SDL_GetError());
+        return false;
+    }
+
+    SC_LOG_INFO("Renderer initialized (lit sprite batch, max %d sprites).", kMaxSprites);
     return true;
 }
 
@@ -150,21 +198,22 @@ void Renderer::begin() {
     m_spriteTextures.clear();
 }
 
-void Renderer::draw(TextureHandle texture, glm::vec2 pos, glm::vec2 size, float rotation,
-                    glm::vec2 uvMin, glm::vec2 uvMax) {
-    if (texture == kInvalidTexture) {
+void Renderer::draw(TextureHandle albedo, TextureHandle normal, glm::vec2 pos, glm::vec2 size,
+                    float rotation, glm::vec2 uvMin, glm::vec2 uvMax) {
+    if (albedo == kInvalidTexture) {
         return;
     }
     if (static_cast<int>(m_vertices.size()) + 6 > kMaxVertices) {
         return; // batch full; silently drop (budget is generous)
     }
-    m_spriteTextures.push_back(texture);
+    m_spriteTextures.push_back(SpriteTex{albedo, normal});
 
     const float c = std::cos(rotation);
     const float s = std::sin(rotation);
     const glm::vec2 h = size * 0.5f;
     auto push = [&](float lx, float ly, float u, float v) {
-        m_vertices.push_back({lx * c - ly * s + pos.x, lx * s + ly * c + pos.y, u, v});
+        m_vertices.push_back(
+            {lx * c - ly * s + pos.x, lx * s + ly * c + pos.y, u, v, c, s});
     };
     // Two triangles (CCW): TL, TR, BR and TL, BR, BL. UV origin top-left.
     push(-h.x, h.y, uvMin.x, uvMin.y);
@@ -198,32 +247,40 @@ void Renderer::upload(SDL_GPUCommandBuffer* cmd) {
 }
 
 void Renderer::render(SDL_GPUCommandBuffer* cmd, SDL_GPURenderPass* pass,
-                      const glm::mat4& viewProj, const TextureRegistry& textures) {
+                      const glm::mat4& viewProj, const TextureRegistry& textures,
+                      const LightsUBO& lights) {
     if (m_spriteTextures.empty()) {
         return;
     }
 
-    // Pipeline, vertex buffer, and the camera uniform are bound once.
+    // Pipeline, vertex buffer, camera matrix, and lights are bound once.
     SDL_BindGPUGraphicsPipeline(pass, m_pipeline);
     SDL_GPUBufferBinding vbBinding{};
     vbBinding.buffer = m_vbo;
     vbBinding.offset = 0;
     SDL_BindGPUVertexBuffers(pass, 0, &vbBinding, 1);
     SDL_PushGPUVertexUniformData(cmd, 0, glm::value_ptr(viewProj), sizeof(viewProj));
+    SDL_PushGPUFragmentUniformData(cmd, 0, &lights, sizeof(lights));
 
-    // Walk the queued sprites, flushing one draw per run of the same texture.
+    auto same = [](const SpriteTex& a, const SpriteTex& b) {
+        return a.albedo == b.albedo && a.normal == b.normal;
+    };
+    // Walk the queued sprites, flushing one draw per (albedo, normal) run.
     std::size_t i = 0;
     while (i < m_spriteTextures.size()) {
-        const TextureHandle handle = m_spriteTextures[i];
+        const SpriteTex tex = m_spriteTextures[i];
         std::size_t j = i;
-        while (j < m_spriteTextures.size() && m_spriteTextures[j] == handle) {
+        while (j < m_spriteTextures.size() && same(m_spriteTextures[j], tex)) {
             ++j;
         }
-        if (textures.valid(handle)) {
-            SDL_GPUTextureSamplerBinding texBinding{};
-            texBinding.texture = textures.get(handle).handle;
-            texBinding.sampler = m_sampler;
-            SDL_BindGPUFragmentSamplers(pass, 0, &texBinding, 1);
+        if (textures.valid(tex.albedo)) {
+            SDL_GPUTextureSamplerBinding binds[2]{};
+            binds[0].texture = textures.get(tex.albedo).handle;
+            binds[0].sampler = m_sampler;
+            binds[1].texture =
+                textures.valid(tex.normal) ? textures.get(tex.normal).handle : m_flatNormal;
+            binds[1].sampler = m_sampler;
+            SDL_BindGPUFragmentSamplers(pass, 0, binds, 2);
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>((j - i) * 6), 1,
                                   static_cast<Uint32>(i * 6), 0);
         }
@@ -234,6 +291,10 @@ void Renderer::render(SDL_GPUCommandBuffer* cmd, SDL_GPURenderPass* pass,
 void Renderer::shutdown() {
     if (m_gpu == nullptr) {
         return;
+    }
+    if (m_flatNormal != nullptr) {
+        SDL_ReleaseGPUTexture(m_gpu, m_flatNormal);
+        m_flatNormal = nullptr;
     }
     if (m_transfer != nullptr) {
         SDL_ReleaseGPUTransferBuffer(m_gpu, m_transfer);

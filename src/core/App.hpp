@@ -57,6 +57,10 @@ private:
     TextureHandle m_floorTexture = kInvalidTexture;
     TextureHandle m_voidTexture = kInvalidTexture;
     bool m_showDebugRay = true;
+
+    glm::vec4 m_ambient{0.12f, 0.12f, 0.18f, 1.0f};   // rgb + strength
+    glm::vec4 m_lightParams{32.0f, 0.5f, 0.0f, 0.0f}; // shininess, specular strength
+    Entity m_debugLight = entt::null;                 // ImGui-draggable light
 };
 
 } // namespace sc
