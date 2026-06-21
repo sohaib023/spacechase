@@ -6,6 +6,7 @@
 // editor will enumerate (brief §3.3, §7).
 
 #include "data/ShipDef.hpp"
+#include "data/WallDef.hpp"
 
 #include <filesystem>
 #include <string>
@@ -16,17 +17,21 @@ namespace sc {
 
 class DefinitionRegistry {
 public:
-    // Load every *.json in `dir` as a ship definition. Bad files are logged and
-    // skipped; returns false only if the directory is missing or yields nothing.
+    // Load every *.json in `dir` as a definition of the given kind. Bad files
+    // are logged and skipped; returns false only if the dir is missing/empty.
     bool load_ships_from_dir(const std::filesystem::path& dir);
+    bool load_walls_from_dir(const std::filesystem::path& dir);
 
-    // Look up a ship definition by id; nullptr if absent.
+    // Look up a definition by id; nullptr if absent.
     const ShipDef* find_ship(std::string_view id) const;
+    const WallDef* find_wall(std::string_view id) const;
 
     const std::unordered_map<std::string, ShipDef>& ships() const { return m_ships; }
+    const std::unordered_map<std::string, WallDef>& walls() const { return m_walls; }
 
 private:
     std::unordered_map<std::string, ShipDef> m_ships;
+    std::unordered_map<std::string, WallDef> m_walls;
 };
 
 } // namespace sc

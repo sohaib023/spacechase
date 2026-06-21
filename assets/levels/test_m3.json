@@ -1,0 +1,17 @@
+{
+  "playerSpawn": [0.0, 0.0],
+  "floor": [
+    { "center": [0.0, 0.0], "halfExtents": [16.0, 12.0] }
+  ],
+  "voids": [
+    { "center": [-6.0, -5.0], "halfExtents": [2.0, 2.0] },
+    { "center": [7.0, 4.0], "halfExtents": [1.5, 1.5] }
+  ],
+  "walls": [
+    { "def": "wall", "center": [8.0, 0.0], "halfExtents": [1.0, 4.0] },
+    { "def": "wall", "center": [-8.0, 0.0], "halfExtents": [1.0, 4.0] },
+    { "def": "wall", "center": [0.0, 6.0], "halfExtents": [6.0, 1.0] },
+    { "def": "crate", "center": [3.0, -5.0] },
+    { "def": "crate", "center": [-3.0, 3.0] }
+  ]
+}

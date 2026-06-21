@@ -1,6 +1,7 @@
 #include "gameplay/WallFactory.hpp"
 
 #include "components/CollisionLayer.hpp"
+#include "components/Health.hpp"
 #include "components/Hitbox.hpp"
 #include "components/PrevTransform.hpp"
 #include "components/SpriteRender.hpp"
@@ -11,7 +12,7 @@
 namespace sc {
 
 Entity spawn_wall(Registry& registry, TextureHandle texture, glm::vec2 center,
-                  glm::vec2 halfExtents, bool destructible) {
+                  glm::vec2 halfExtents, bool destructible, float health) {
     const Entity entity = registry.create();
 
     registry.emplace<Transform>(entity, Transform{center, 0.0f});
@@ -33,6 +34,9 @@ Entity spawn_wall(Registry& registry, TextureHandle texture, glm::vec2 center,
     registry.emplace<CollisionLayer>(entity, CollisionLayer{layer::Wall, 0u});
     registry.emplace<StaticTag>(entity);
     registry.emplace<Wall>(entity, Wall{destructible});
+    if (destructible) {
+        registry.emplace<Health>(entity, Health{health, health});
+    }
 
     return entity;
 }

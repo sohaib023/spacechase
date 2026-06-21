@@ -2,11 +2,16 @@
 
 #include "components/Altitude.hpp"
 #include "components/CollisionLayer.hpp"
+#include "components/Health.hpp"
 #include "components/ShipStats.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
+#include "components/Wall.hpp"
 #include "core/Log.hpp"
+#include "data/LevelDef.hpp"
+#include "data/LevelLoader.hpp"
 #include "data/ShipDef.hpp"
+#include "data/WallDef.hpp"
 #include "gameplay/ShipFactory.hpp"
 #include "gameplay/WallFactory.hpp"
 #include "physics/Raycast.hpp"
@@ -22,6 +27,7 @@
 #include <imgui.h>
 
 #include <cmath>
+#include <limits>
 #include <string>
 
 namespace sc {
@@ -109,30 +115,37 @@ bool App::init() {
         return false;
     }
 
-    // Test scene: a few walls to collide with (in-code for M3.4; replaced by a
-    // JSON level in M3.7). Spawned before the player so the ship draws on top.
-    const TextureHandle wallTexture =
-        m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/wall.png");
-    if (wallTexture != kInvalidTexture) {
-        spawn_wall(m_world.registry, wallTexture, {8.0f, 0.0f}, {1.0f, 4.0f}, false);
-        spawn_wall(m_world.registry, wallTexture, {-8.0f, 0.0f}, {1.0f, 4.0f}, false);
-        spawn_wall(m_world.registry, wallTexture, {0.0f, 6.0f}, {6.0f, 1.0f}, false);
-        spawn_wall(m_world.registry, wallTexture, {3.0f, -5.0f}, {1.5f, 1.5f}, true);
-    }
-
-    m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture,
-                                    glm::vec2(0.0f, 0.0f), /*facing=*/0.0f,
-                                    /*playerControlled=*/true);
-
-    m_debugTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/debug_white.png");
-
-    // Floor: a big platform (continuous meters) with a couple of void pits to
-    // fall into. (In-code for M3.6; a JSON level replaces it in M3.7.)
     m_floorTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/floor.png");
     m_voidTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/void.png");
-    m_level.floorRects.push_back(AABB{{0.0f, 0.0f}, {16.0f, 12.0f}});
-    m_level.voidRects.push_back(AABB{{-6.0f, -5.0f}, {2.0f, 2.0f}});
-    m_level.voidRects.push_back(AABB{{7.0f, 4.0f}, {1.5f, 1.5f}});
+    m_debugTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/debug_white.png");
+
+    // Load wall definitions and the level (floor / voids / wall instances).
+    m_defs.load_walls_from_dir(std::string(SC_ASSET_DIR) + "/definitions/walls");
+    LevelData levelData;
+    if (!load_level(std::string(SC_ASSET_DIR) + "/levels/test_m3.json", levelData)) {
+        SC_LOG_ERROR("Failed to load level");
+        return false;
+    }
+    m_level = levelData.level;
+    m_spawn = levelData.playerSpawn;
+
+    // Spawn wall instances (before the player, so the ship draws on top).
+    for (const WallInstance& instance : levelData.walls) {
+        const WallDef* wallDef = m_defs.find_wall(instance.def);
+        if (wallDef == nullptr) {
+            SC_LOG_ERROR("Unknown wall def '%s'", instance.def.c_str());
+            continue;
+        }
+        const TextureHandle wallTexture =
+            m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/" + wallDef->sprite);
+        const glm::vec2 halfExtents =
+            instance.hasHalfExtents ? instance.halfExtents : wallDef->halfExtents;
+        spawn_wall(m_world.registry, wallTexture, instance.center, halfExtents,
+                   wallDef->destructible, wallDef->health);
+    }
+
+    m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture, m_spawn,
+                                    /*facing=*/0.0f, /*playerControlled=*/true);
 
     SC_LOG_INFO("Space Chase initialized.");
     return true;
@@ -217,6 +230,28 @@ void App::run() {
                 ImGui::SliderFloat("drag", &stats.drag, 0.0f, 5.0f);
                 ImGui::Checkbox("debug ray", &m_showDebugRay);
                 ImGui::Checkbox("control while falling", &m_fallConfig.controlWhileFalling);
+                if (ImGui::Button("damage nearest crate")) {
+                    // Exercises Health + despawn (no weapons until M5). Crates are
+                    // the only walls with Health.
+                    Entity nearest = entt::null;
+                    float best = std::numeric_limits<float>::max();
+                    auto crates = reg.view<Transform, Wall, Health>();
+                    for (const Entity crate : crates) {
+                        const float d = glm::distance(crates.get<Transform>(crate).position,
+                                                      transform.position);
+                        if (d < best) {
+                            best = d;
+                            nearest = crate;
+                        }
+                    }
+                    if (reg.valid(nearest)) {
+                        Health& hp = reg.get<Health>(nearest);
+                        hp.current -= 50.0f;
+                        if (hp.current <= 0.0f) {
+                            reg.destroy(nearest);
+                        }
+                    }
+                }
                 ImGui::TextDisabled("WASD / arrow keys to fly");
             }
         }

@@ -12,6 +12,6 @@
 namespace sc {
 
 Entity spawn_wall(Registry& registry, TextureHandle texture, glm::vec2 center,
-                  glm::vec2 halfExtents, bool destructible);
+                  glm::vec2 halfExtents, bool destructible, float health);
 
 } // namespace sc

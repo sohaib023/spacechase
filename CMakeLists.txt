@@ -115,6 +115,7 @@ add_executable(SpaceChase
     src/resources/stb_image_impl.cpp
     src/render/Renderer.cpp
     src/data/DefinitionRegistry.cpp
+    src/data/LevelLoader.cpp
     src/physics/Overlap.cpp
     src/physics/SpatialHash.cpp
     src/physics/Raycast.cpp
@@ -174,7 +175,9 @@ add_executable(SpaceChase_tests
     tests/test_collision_resolve.cpp
     tests/test_raycast.cpp
     tests/test_falling.cpp
-    src/data/DefinitionRegistry.cpp   # exercised by test_definitions
+    tests/test_level.cpp
+    src/data/DefinitionRegistry.cpp   # exercised by test_definitions + test_level
+    src/data/LevelLoader.cpp          # exercised by test_level
     src/systems/MovementSystem.cpp    # exercised by test_movement
     src/systems/CollisionSystem.cpp   # exercised by test_collision_resolve
     src/systems/FloorAltitudeSystem.cpp # exercised by test_falling

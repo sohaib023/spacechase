@@ -1,0 +1,6 @@
+{
+  "id": "wall",
+  "sprite": "sprites/wall.png",
+  "destructible": false,
+  "halfExtents": [1.0, 1.0]
+}
