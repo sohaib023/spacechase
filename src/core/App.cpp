@@ -171,14 +171,14 @@ void App::run() {
                 const Transform& transform = reg.get<Transform>(player);
                 const Velocity& velocity = reg.get<Velocity>(player);
                 ShipStats& stats = reg.get<ShipStats>(player);
-                ImGui::Text("pos    (%.0f, %.0f)", transform.position.x, transform.position.y);
-                ImGui::Text("vel    (%.0f, %.0f)", velocity.value.x, velocity.value.y);
-                ImGui::Text("speed  %.0f", glm::length(velocity.value));
+                ImGui::Text("pos    (%.1f, %.1f) m", transform.position.x, transform.position.y);
+                ImGui::Text("vel    (%.1f, %.1f) m/s", velocity.value.x, velocity.value.y);
+                ImGui::Text("speed  %.1f m/s", glm::length(velocity.value));
                 ImGui::Text("facing %.2f rad", transform.rotation);
                 ImGui::Separator();
-                ImGui::SliderFloat("acceleration", &stats.acceleration, 100.0f, 2500.0f);
-                ImGui::SliderFloat("max speed", &stats.maxSpeed, 100.0f, 1500.0f);
-                ImGui::SliderFloat("turn speed", &stats.turnSpeed, 1.0f, 8.0f);
+                ImGui::SliderFloat("acceleration", &stats.acceleration, 5.0f, 200.0f, "%.1f m/s2");
+                ImGui::SliderFloat("max speed", &stats.maxSpeed, 2.0f, 60.0f, "%.1f m/s");
+                ImGui::SliderFloat("turn speed", &stats.turnSpeed, 0.5f, 8.0f, "%.2f rad/s");
                 ImGui::SliderFloat("drag", &stats.drag, 0.0f, 5.0f);
                 ImGui::TextDisabled("WASD / arrow keys to fly");
             }
