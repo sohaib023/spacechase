@@ -45,6 +45,9 @@ private:
 
     World m_world;             // entity registry + named handles (owns the sim)
     DefinitionRegistry m_defs; // loaded content definitions (source of truth)
+
+    TextureHandle m_debugTexture = kInvalidTexture; // debug-draw marker/beam
+    bool m_showDebugRay = true;
 };
 
 } // namespace sc

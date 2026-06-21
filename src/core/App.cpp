@@ -1,5 +1,6 @@
 #include "core/App.hpp"
 
+#include "components/CollisionLayer.hpp"
 #include "components/ShipStats.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
@@ -7,6 +8,7 @@
 #include "data/ShipDef.hpp"
 #include "gameplay/ShipFactory.hpp"
 #include "gameplay/WallFactory.hpp"
+#include "physics/Raycast.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
@@ -17,6 +19,7 @@
 #include <backends/imgui_impl_sdlgpu3.h>
 #include <imgui.h>
 
+#include <cmath>
 #include <string>
 
 namespace sc {
@@ -119,6 +122,8 @@ bool App::init() {
                                     glm::vec2(0.0f, 0.0f), /*facing=*/0.0f,
                                     /*playerControlled=*/true);
 
+    m_debugTexture = m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/debug_white.png");
+
     SC_LOG_INFO("Space Chase initialized.");
     return true;
 }
@@ -195,6 +200,7 @@ void App::run() {
                 ImGui::SliderFloat("max speed", &stats.maxSpeed, 2.0f, 60.0f, "%.1f m/s");
                 ImGui::SliderFloat("turn speed", &stats.turnSpeed, 0.5f, 8.0f, "%.2f rad/s");
                 ImGui::SliderFloat("drag", &stats.drag, 0.0f, 5.0f);
+                ImGui::Checkbox("debug ray", &m_showDebugRay);
                 ImGui::TextDisabled("WASD / arrow keys to fly");
             }
         }
@@ -205,6 +211,23 @@ void App::run() {
         // --- Queue the world into the sprite batch ---
         m_renderer.begin();
         render_collect(m_world.registry, m_renderer, alpha);
+
+        // Debug ray: cast from the player along its facing, drawn as a thin beam
+        // plus a marker at the hit point. Proves the raycast API end-to-end.
+        if (m_showDebugRay && m_debugTexture != kInvalidTexture &&
+            m_world.registry.valid(m_world.playerShip)) {
+            const Transform& pt = m_world.registry.get<Transform>(m_world.playerShip);
+            const glm::vec2 dir{-std::sin(pt.rotation), std::cos(pt.rotation)};
+            constexpr float kMaxDist = 50.0f;
+            const RayHit hit = raycast(m_world.registry, pt.position, dir, kMaxDist, layer::Wall);
+            const float len = hit.hit ? hit.t : kMaxDist;
+            const glm::vec2 mid = pt.position + dir * (len * 0.5f);
+            const float phi = std::atan2(dir.y, dir.x);
+            m_renderer.draw(m_debugTexture, mid, glm::vec2(len, 0.06f), phi);
+            if (hit.hit) {
+                m_renderer.draw(m_debugTexture, hit.point, glm::vec2(0.4f, 0.4f), 0.0f);
+            }
+        }
 
         SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(m_gpu);
         if (cmd == nullptr) {
