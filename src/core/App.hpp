@@ -5,7 +5,8 @@
 // renders the ImGui demo window; the fixed-timestep simulation/render split
 // (brief §3.4) lands in M1 when there is something to simulate.
 
-#include "gameplay/Ship.hpp"
+#include "data/DefinitionRegistry.hpp"
+#include "ecs/World.hpp"
 #include "render/Camera.hpp"
 #include "render/Renderer.hpp"
 #include "resources/Texture.hpp"
@@ -42,9 +43,8 @@ private:
     Texture m_shipTexture;
     Camera2D m_camera;
 
-    ShipState m_ship;
-    ShipState m_shipPrev; // previous fixed-step state, for render interpolation
-    ShipConfig m_shipConfig;
+    World m_world;             // entity registry + named handles (owns the sim)
+    DefinitionRegistry m_defs; // loaded content definitions (source of truth)
 };
 
 } // namespace sc

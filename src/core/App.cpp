@@ -1,6 +1,14 @@
 #include "core/App.hpp"
 
+#include "components/ShipStats.hpp"
+#include "components/Transform.hpp"
+#include "components/Velocity.hpp"
 #include "core/Log.hpp"
+#include "data/ShipDef.hpp"
+#include "gameplay/ShipFactory.hpp"
+#include "systems/InputSystem.hpp"
+#include "systems/MovementSystem.hpp"
+#include "systems/RenderCollectSystem.hpp"
 
 #include <SDL3/SDL.h>
 #include <backends/imgui_impl_sdl3.h>
@@ -76,10 +84,26 @@ bool App::init() {
         return false;
     }
 
-    const std::string shipPath = std::string(SC_ASSET_DIR) + "/sprites/ship_sheet.png";
+    // --- Content: load definitions, then spawn the player ship from data ---
+    const std::string defsDir = std::string(SC_ASSET_DIR) + "/definitions/ships";
+    if (!m_defs.load_ships_from_dir(defsDir)) {
+        SC_LOG_ERROR("No ship definitions loaded from %s", defsDir.c_str());
+        return false;
+    }
+    const ShipDef* playerDef = m_defs.find_ship("player_ship");
+    if (playerDef == nullptr) {
+        SC_LOG_ERROR("Missing 'player_ship' definition");
+        return false;
+    }
+
+    const std::string shipPath = std::string(SC_ASSET_DIR) + "/" + playerDef->spriteSheet;
     if (!load_texture(m_gpu, shipPath.c_str(), m_shipTexture)) {
         return false;
     }
+
+    m_world.playerShip = spawn_ship(m_world.registry, *playerDef, m_shipTexture,
+                                    glm::vec2(0.0f, 0.0f), /*facing=*/0.0f,
+                                    /*playerControlled=*/true);
 
     SC_LOG_INFO("Space Chase initialized.");
     return true;
@@ -127,30 +151,37 @@ void App::run() {
             if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT]) actions.turn -= 1.0f;
         }
 
-        // --- Fixed-step simulation ---
+        // --- Apply input, then advance the fixed-step simulation ---
+        input_apply(m_world.registry, actions);
         while (accumulator >= kFixedDt) {
-            m_shipPrev = m_ship;
-            ship_step(m_ship, m_shipConfig, actions, kFixedDt);
+            snapshot_prev_transforms(m_world.registry);
+            movement_step(m_world.registry, kFixedDt);
             accumulator -= kFixedDt;
         }
         const float alpha = static_cast<float>(accumulator / kFixedDt);
-        const ShipState rendered = ship_lerp(m_shipPrev, m_ship, alpha);
 
         // --- UI ---
         ImGui_ImplSDLGPU3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
         if (ImGui::Begin("Ship")) {
-            ImGui::Text("pos    (%.0f, %.0f)", m_ship.position.x, m_ship.position.y);
-            ImGui::Text("vel    (%.0f, %.0f)", m_ship.velocity.x, m_ship.velocity.y);
-            ImGui::Text("speed  %.0f", glm::length(m_ship.velocity));
-            ImGui::Text("facing %.2f rad", m_ship.facing);
-            ImGui::Separator();
-            ImGui::SliderFloat("acceleration", &m_shipConfig.acceleration, 100.0f, 2500.0f);
-            ImGui::SliderFloat("max speed", &m_shipConfig.maxSpeed, 100.0f, 1500.0f);
-            ImGui::SliderFloat("turn speed", &m_shipConfig.turnSpeed, 1.0f, 8.0f);
-            ImGui::SliderFloat("drag", &m_shipConfig.drag, 0.0f, 5.0f);
-            ImGui::TextDisabled("WASD / arrow keys to fly");
+            Registry& reg = m_world.registry;
+            const Entity player = m_world.playerShip;
+            if (reg.valid(player)) {
+                const Transform& transform = reg.get<Transform>(player);
+                const Velocity& velocity = reg.get<Velocity>(player);
+                ShipStats& stats = reg.get<ShipStats>(player);
+                ImGui::Text("pos    (%.0f, %.0f)", transform.position.x, transform.position.y);
+                ImGui::Text("vel    (%.0f, %.0f)", velocity.value.x, velocity.value.y);
+                ImGui::Text("speed  %.0f", glm::length(velocity.value));
+                ImGui::Text("facing %.2f rad", transform.rotation);
+                ImGui::Separator();
+                ImGui::SliderFloat("acceleration", &stats.acceleration, 100.0f, 2500.0f);
+                ImGui::SliderFloat("max speed", &stats.maxSpeed, 100.0f, 1500.0f);
+                ImGui::SliderFloat("turn speed", &stats.turnSpeed, 1.0f, 8.0f);
+                ImGui::SliderFloat("drag", &stats.drag, 0.0f, 5.0f);
+                ImGui::TextDisabled("WASD / arrow keys to fly");
+            }
         }
         ImGui::End();
         ImGui::Render();
@@ -158,21 +189,7 @@ void App::run() {
 
         // --- Queue the world into the sprite batch ---
         m_renderer.begin();
-        {
-            // Tilt frame from turn input: 0 = bank-left, 1 = neutral, 2 = bank-right.
-            int frame = 1;
-            if (actions.turn > 0.2f) {
-                frame = 0;
-            } else if (actions.turn < -0.2f) {
-                frame = 2;
-            }
-            constexpr float kFrameW = 1.0f / 3.0f;
-            const glm::vec2 uvMin{static_cast<float>(frame) * kFrameW, 0.0f};
-            const glm::vec2 uvMax{static_cast<float>(frame + 1) * kFrameW, 1.0f};
-            // One sheet frame is 64x64 (sheet is 192x64).
-            m_renderer.draw(m_shipTexture, rendered.position, glm::vec2(64.0f, 64.0f),
-                            rendered.facing, uvMin, uvMax);
-        }
+        render_collect(m_world.registry, m_renderer, alpha);
 
         SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(m_gpu);
         if (cmd == nullptr) {

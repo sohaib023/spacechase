@@ -24,8 +24,8 @@ include(warnings)
 # ---------------------------------------------------------------------------
 # Dependencies (FetchContent). Pins are deliberately conservative; bump the
 # GIT_TAGs to the latest stable releases when you want newer features.
-# Only M0 deps are fetched here (SDL3 + Dear ImGui). EnTT/glm/json/enet/doctest
-# are added at the milestone that first needs them (see plan / brief §9).
+# M0: SDL3 + Dear ImGui. M1: glm + stb. M2: EnTT + nlohmann_json + doctest.
+# Remaining (enet) arrive at the milestone that first needs them (brief §9).
 # ---------------------------------------------------------------------------
 include(FetchContent)
 
@@ -65,7 +65,32 @@ FetchContent_Declare(
     GIT_TAG        31c1ad37456438565541f4919958214b6e762fb4
 )
 
-FetchContent_MakeAvailable(SDL3 imgui glm stb)
+# EnTT — header-only ECS (the entity/component spine). Target: EnTT::EnTT.
+FetchContent_Declare(
+    EnTT
+    GIT_REPOSITORY https://github.com/skypjack/entt.git
+    GIT_TAG        v3.15.0
+    GIT_SHALLOW    TRUE
+)
+
+# nlohmann/json — single-header JSON for definition files. Target: nlohmann_json::nlohmann_json.
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.12.0
+    GIT_SHALLOW    TRUE
+)
+
+# doctest — unit test framework (used by the SpaceChase_tests target). Target: doctest::doctest.
+FetchContent_Declare(
+    doctest
+    GIT_REPOSITORY https://github.com/doctest/doctest.git
+    GIT_TAG        v2.4.11
+    GIT_SHALLOW    TRUE
+)
+
+FetchContent_MakeAvailable(SDL3 imgui glm stb EnTT nlohmann_json doctest)
 
 # Build the imgui target now that both SDL3 and the imgui sources are available.
 include(imgui)
@@ -88,7 +113,11 @@ add_executable(SpaceChase
     src/resources/Texture.cpp
     src/resources/stb_image_impl.cpp
     src/render/Renderer.cpp
-    src/gameplay/Ship.cpp
+    src/data/DefinitionRegistry.cpp
+    src/systems/InputSystem.cpp
+    src/systems/MovementSystem.cpp
+    src/systems/RenderCollectSystem.cpp
+    src/gameplay/ShipFactory.cpp
 )
 
 # The stb_image implementation TU is vendored third-party code; compile it with
@@ -102,7 +131,8 @@ else()
 endif()
 
 target_include_directories(SpaceChase PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(SpaceChase PRIVATE SDL3::SDL3 imgui glm::glm stb)
+target_link_libraries(SpaceChase PRIVATE
+    SDL3::SDL3 imgui glm::glm stb EnTT::EnTT nlohmann_json::nlohmann_json)
 spacechase_set_warnings(SpaceChase)
 
 # Dev builds load assets straight from the source tree (fast iteration / future
