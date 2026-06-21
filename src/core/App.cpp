@@ -6,6 +6,8 @@
 #include "core/Log.hpp"
 #include "data/ShipDef.hpp"
 #include "gameplay/ShipFactory.hpp"
+#include "gameplay/WallFactory.hpp"
+#include "systems/CollisionSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/MovementSystem.hpp"
 #include "systems/RenderCollectSystem.hpp"
@@ -102,6 +104,17 @@ bool App::init() {
         return false;
     }
 
+    // Test scene: a few walls to collide with (in-code for M3.4; replaced by a
+    // JSON level in M3.7). Spawned before the player so the ship draws on top.
+    const TextureHandle wallTexture =
+        m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/sprites/wall.png");
+    if (wallTexture != kInvalidTexture) {
+        spawn_wall(m_world.registry, wallTexture, {8.0f, 0.0f}, {1.0f, 4.0f}, false);
+        spawn_wall(m_world.registry, wallTexture, {-8.0f, 0.0f}, {1.0f, 4.0f}, false);
+        spawn_wall(m_world.registry, wallTexture, {0.0f, 6.0f}, {6.0f, 1.0f}, false);
+        spawn_wall(m_world.registry, wallTexture, {3.0f, -5.0f}, {1.5f, 1.5f}, true);
+    }
+
     m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture,
                                     glm::vec2(0.0f, 0.0f), /*facing=*/0.0f,
                                     /*playerControlled=*/true);
@@ -157,6 +170,7 @@ void App::run() {
         while (accumulator >= kFixedDt) {
             snapshot_prev_transforms(m_world.registry);
             movement_step(m_world.registry, kFixedDt);
+            collision_step(m_world.registry, kFixedDt);
             accumulator -= kFixedDt;
         }
         const float alpha = static_cast<float>(accumulator / kFixedDt);

@@ -2,5 +2,6 @@
   "id": "player_ship",
   "displayName": "Player Ship",
   "sprite": { "sheet": "sprites/ship_sheet.png", "frameCount": 3, "frameSize": [2.0, 2.0] },
+  "hitbox": { "radius": 0.8 },
   "stats": { "acceleration": 40.0, "maxSpeed": 20.0, "turnSpeed": 3.2, "drag": 1.2 }
 }

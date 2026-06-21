@@ -24,6 +24,10 @@ ShipDef parse_ship(const nlohmann::json& j) {
     const nlohmann::json& frameSize = sprite.at("frameSize");
     def.frameSize = glm::vec2(frameSize.at(0).get<float>(), frameSize.at(1).get<float>());
 
+    if (j.contains("hitbox")) {
+        def.hitboxRadius = j.at("hitbox").value("radius", def.hitboxRadius);
+    }
+
     const nlohmann::json& stats = j.at("stats");
     def.stats.acceleration = stats.at("acceleration").get<float>();
     def.stats.maxSpeed = stats.at("maxSpeed").get<float>();
