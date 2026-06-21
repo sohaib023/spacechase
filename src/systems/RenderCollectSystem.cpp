@@ -14,7 +14,7 @@ void render_collect(Registry& registry, Renderer& renderer, float alpha) {
         const PrevTransform& prev = view.get<PrevTransform>(entity);
         const Transform& current = view.get<Transform>(entity);
         SpriteRender& sprite = view.get<SpriteRender>(entity);
-        if (sprite.texture == nullptr || sprite.frameCount < 1) {
+        if (sprite.texture == kInvalidTexture || sprite.frameCount < 1) {
             continue;
         }
 
@@ -40,7 +40,7 @@ void render_collect(Registry& registry, Renderer& renderer, float alpha) {
         const float frameW = 1.0f / static_cast<float>(sprite.frameCount);
         const glm::vec2 uvMin{static_cast<float>(frame) * frameW, 0.0f};
         const glm::vec2 uvMax{static_cast<float>(frame + 1) * frameW, 1.0f};
-        renderer.draw(*sprite.texture, position, sprite.size, rotation, uvMin, uvMax);
+        renderer.draw(sprite.texture, position, sprite.size, rotation, uvMin, uvMax);
     }
 }
 

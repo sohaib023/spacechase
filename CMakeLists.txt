@@ -111,6 +111,7 @@ add_executable(SpaceChase
     src/game/main.cpp
     src/core/App.cpp
     src/resources/Texture.cpp
+    src/resources/TextureRegistry.cpp
     src/resources/stb_image_impl.cpp
     src/render/Renderer.cpp
     src/data/DefinitionRegistry.cpp

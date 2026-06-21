@@ -97,11 +97,12 @@ bool App::init() {
     }
 
     const std::string shipPath = std::string(SC_ASSET_DIR) + "/" + playerDef->spriteSheet;
-    if (!load_texture(m_gpu, shipPath.c_str(), m_shipTexture)) {
+    const TextureHandle shipTexture = m_textures.load(m_gpu, shipPath);
+    if (shipTexture == kInvalidTexture) {
         return false;
     }
 
-    m_world.playerShip = spawn_ship(m_world.registry, *playerDef, m_shipTexture,
+    m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture,
                                     glm::vec2(0.0f, 0.0f), /*facing=*/0.0f,
                                     /*playerControlled=*/true);
 
@@ -224,7 +225,7 @@ void App::run() {
             target.store_op = SDL_GPU_STOREOP_STORE;
 
             SDL_GPURenderPass* pass = SDL_BeginGPURenderPass(cmd, &target, 1, nullptr);
-            m_renderer.render(cmd, pass, viewProj);
+            m_renderer.render(cmd, pass, viewProj, m_textures);
             ImGui_ImplSDLGPU3_RenderDrawData(drawData, cmd, pass);
             SDL_EndGPURenderPass(pass);
         }
@@ -237,7 +238,7 @@ void App::shutdown() {
     if (m_gpu != nullptr) {
         // Make sure the GPU is idle before destroying resources it may still use.
         SDL_WaitForGPUIdle(m_gpu);
-        destroy_texture(m_gpu, m_shipTexture);
+        m_textures.destroy_all(m_gpu);
         m_renderer.shutdown();
     }
 

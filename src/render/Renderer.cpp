@@ -1,11 +1,13 @@
 #include "render/Renderer.hpp"
 
 #include "core/Log.hpp"
+#include "resources/TextureRegistry.hpp"
 
 #include <SDL3/SDL.h>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <cmath>
+#include <cstddef>
 #include <string>
 
 namespace sc {
@@ -145,18 +147,18 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
 
 void Renderer::begin() {
     m_vertices.clear();
-    m_texture = nullptr;
+    m_spriteTextures.clear();
 }
 
-void Renderer::draw(const Texture& tex, glm::vec2 pos, glm::vec2 size, float rotation,
+void Renderer::draw(TextureHandle texture, glm::vec2 pos, glm::vec2 size, float rotation,
                     glm::vec2 uvMin, glm::vec2 uvMax) {
-    if (tex.handle == nullptr) {
+    if (texture == kInvalidTexture) {
         return;
     }
     if (static_cast<int>(m_vertices.size()) + 6 > kMaxVertices) {
-        return; // batch full; silently drop (logged budget is generous for M1)
+        return; // batch full; silently drop (budget is generous)
     }
-    m_texture = tex.handle; // single-texture batch for M1
+    m_spriteTextures.push_back(texture);
 
     const float c = std::cos(rotation);
     const float s = std::sin(rotation);
@@ -196,25 +198,37 @@ void Renderer::upload(SDL_GPUCommandBuffer* cmd) {
 }
 
 void Renderer::render(SDL_GPUCommandBuffer* cmd, SDL_GPURenderPass* pass,
-                      const glm::mat4& viewProj) {
-    if (m_vertices.empty() || m_texture == nullptr) {
+                      const glm::mat4& viewProj, const TextureRegistry& textures) {
+    if (m_spriteTextures.empty()) {
         return;
     }
 
+    // Pipeline, vertex buffer, and the camera uniform are bound once.
     SDL_BindGPUGraphicsPipeline(pass, m_pipeline);
-
     SDL_GPUBufferBinding vbBinding{};
     vbBinding.buffer = m_vbo;
     vbBinding.offset = 0;
     SDL_BindGPUVertexBuffers(pass, 0, &vbBinding, 1);
-
-    SDL_GPUTextureSamplerBinding texBinding{};
-    texBinding.texture = m_texture;
-    texBinding.sampler = m_sampler;
-    SDL_BindGPUFragmentSamplers(pass, 0, &texBinding, 1);
-
     SDL_PushGPUVertexUniformData(cmd, 0, glm::value_ptr(viewProj), sizeof(viewProj));
-    SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(m_vertices.size()), 1, 0, 0);
+
+    // Walk the queued sprites, flushing one draw per run of the same texture.
+    std::size_t i = 0;
+    while (i < m_spriteTextures.size()) {
+        const TextureHandle handle = m_spriteTextures[i];
+        std::size_t j = i;
+        while (j < m_spriteTextures.size() && m_spriteTextures[j] == handle) {
+            ++j;
+        }
+        if (textures.valid(handle)) {
+            SDL_GPUTextureSamplerBinding texBinding{};
+            texBinding.texture = textures.get(handle).handle;
+            texBinding.sampler = m_sampler;
+            SDL_BindGPUFragmentSamplers(pass, 0, &texBinding, 1);
+            SDL_DrawGPUPrimitives(pass, static_cast<Uint32>((j - i) * 6), 1,
+                                  static_cast<Uint32>(i * 6), 0);
+        }
+        i = j;
+    }
 }
 
 void Renderer::shutdown() {

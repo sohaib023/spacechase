@@ -8,11 +8,10 @@
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
 #include "data/ShipDef.hpp"
-#include "resources/Texture.hpp"
 
 namespace sc {
 
-Entity spawn_ship(Registry& registry, const ShipDef& def, const Texture& texture,
+Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
                   glm::vec2 position, float facing, bool playerControlled) {
     const Entity entity = registry.create();
 
@@ -26,7 +25,7 @@ Entity spawn_ship(Registry& registry, const ShipDef& def, const Texture& texture
                                                   def.stats.turnSpeed, def.stats.drag});
 
     SpriteRender sprite;
-    sprite.texture = &texture;
+    sprite.texture = texture;
     sprite.size = def.frameSize;
     sprite.frameCount = def.frameCount;
     sprite.frame = def.frameCount > 1 ? def.frameCount / 2 : 0;

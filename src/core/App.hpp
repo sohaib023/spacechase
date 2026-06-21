@@ -9,7 +9,7 @@
 #include "ecs/World.hpp"
 #include "render/Camera.hpp"
 #include "render/Renderer.hpp"
-#include "resources/Texture.hpp"
+#include "resources/TextureRegistry.hpp"
 
 struct SDL_Window;
 struct SDL_GPUDevice;
@@ -40,7 +40,7 @@ private:
     bool m_imguiInitialized = false;
 
     Renderer m_renderer;
-    Texture m_shipTexture;
+    TextureRegistry m_textures;
     Camera2D m_camera;
 
     World m_world;             // entity registry + named handles (owns the sim)
