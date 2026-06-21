@@ -11,3 +11,8 @@
 *.ogg  binary
 *.ttf  binary
 *.bin  binary
+# Compiled shader bytecode — must never be line-ending converted.
+*.dxil binary
+*.spv  binary
+*.dxbc binary
+*.cso  binary
