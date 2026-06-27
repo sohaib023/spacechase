@@ -10,29 +10,77 @@
 #include "physics/SpatialHash.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 namespace sc {
 
 namespace {
 
-constexpr float kCellSize = 4.0f;  // meters; low entity counts in M3
+constexpr float kCellSize = 4.0f;  // meters; low entity counts for now
 constexpr float kSlop = 0.001f;    // skin width to avoid jitter
 constexpr int kMaxIterations = 3;  // corner/seam convergence cap
+
+// Build the world-space convex polygon for an AABB or Polygon hitbox (rotated by
+// the entity's rotation; for an AABB this yields an oriented box when rotated).
+Convex to_convex(const Hitbox& hitbox, glm::vec2 center, float rotation) {
+    Convex convex;
+    const float cosR = std::cos(rotation);
+    const float sinR = std::sin(rotation);
+    if (hitbox.shape == HitboxShape::AABB) {
+        const glm::vec2 h = hitbox.halfExtents;
+        const glm::vec2 local[4] = {{-h.x, -h.y}, {h.x, -h.y}, {h.x, h.y}, {-h.x, h.y}};
+        convex.count = 4;
+        for (int i = 0; i < 4; ++i) {
+            convex.verts[i] = rotate_point(local[i], cosR, sinR) + center;
+        }
+    } else { // Polygon
+        convex.count = std::min(hitbox.vertexCount, kMaxHitboxVerts);
+        for (int i = 0; i < convex.count; ++i) {
+            convex.verts[i] = rotate_point(hitbox.vertices[i], cosR, sinR) + center;
+        }
+    }
+    return convex;
+}
 
 AABB world_bounds(const Transform& transform, const Hitbox& hitbox) {
     const glm::vec2 center = transform.position + hitbox.offset;
     if (hitbox.shape == HitboxShape::Circle) {
         return AABB{center, glm::vec2(hitbox.radius)};
     }
-    return AABB{center, hitbox.halfExtents};
+    const Convex convex = to_convex(hitbox, center, transform.rotation);
+    glm::vec2 lo = convex.verts[0];
+    glm::vec2 hi = convex.verts[0];
+    for (int i = 1; i < convex.count; ++i) {
+        lo = glm::min(lo, convex.verts[i]);
+        hi = glm::max(hi, convex.verts[i]);
+    }
+    return AABB{(lo + hi) * 0.5f, (hi - lo) * 0.5f};
+}
+
+// Collision between any two hitboxes. The returned manifold normal pushes A out of B.
+Manifold collide(const Hitbox& a, glm::vec2 aCenter, float aRot, const Hitbox& b,
+                 glm::vec2 bCenter, float bRot) {
+    const bool aCircle = a.shape == HitboxShape::Circle;
+    const bool bCircle = b.shape == HitboxShape::Circle;
+    if (aCircle && bCircle) {
+        return circle_vs_circle(Circle{aCenter, a.radius}, Circle{bCenter, b.radius});
+    }
+    if (aCircle) {
+        return circle_vs_convex(Circle{aCenter, a.radius}, to_convex(b, bCenter, bRot));
+    }
+    if (bCircle) {
+        Manifold m = circle_vs_convex(Circle{bCenter, b.radius}, to_convex(a, aCenter, aRot));
+        m.normal = -m.normal; // circle_vs_convex pushes B out; flip to push A out
+        return m;
+    }
+    return convex_vs_convex(to_convex(a, aCenter, aRot), to_convex(b, bCenter, bRot));
 }
 
 } // namespace
 
 void collision_step(Registry& registry, float dt) {
-    // Rebuild the broadphase from every collider this step (statics included;
-    // few entities in M3, so a full rebuild is fine).
+    // Rebuild the broadphase from every collider this step.
     SpatialHash hash(kCellSize);
     auto colliders = registry.view<Transform, Hitbox, CollisionLayer>();
     for (const Entity entity : colliders) {
@@ -40,7 +88,7 @@ void collision_step(Registry& registry, float dt) {
                                          registry.get<Hitbox>(entity)));
     }
 
-    // Resolve dynamic circle movers (entities with Velocity), in stable id order.
+    // Resolve dynamic movers (entities with Velocity), in stable id order.
     auto movers = registry.view<Transform, Velocity, Hitbox, CollisionLayer>();
     std::vector<Entity> ordered(movers.begin(), movers.end());
     std::sort(ordered.begin(), ordered.end());
@@ -51,22 +99,19 @@ void collision_step(Registry& registry, float dt) {
             continue;
         }
         const Hitbox& selfHitbox = registry.get<Hitbox>(self);
-        if (selfHitbox.shape != HitboxShape::Circle) {
-            continue; // M3 only resolves circle movers
-        }
         const std::uint32_t selfMask = registry.get<CollisionLayer>(self).mask;
 
         for (int iteration = 0; iteration < kMaxIterations; ++iteration) {
             Transform& selfTransform = registry.get<Transform>(self);
             Velocity& selfVelocity = registry.get<Velocity>(self);
-            const Circle circle{selfTransform.position + selfHitbox.offset, selfHitbox.radius};
+            const glm::vec2 selfCenter = selfTransform.position + selfHitbox.offset;
+            const float selfRot = selfTransform.rotation;
 
-            // Swept broadphase: expand the query by this step's displacement so a
-            // fast mover still finds the wall it is about to touch.
-            const glm::vec2 displacement = selfVelocity.value * dt;
-            const AABB query{circle.center, glm::vec2(selfHitbox.radius) + glm::abs(displacement)};
+            // Swept broadphase: expand the mover's bounds by this step's displacement.
+            AABB bounds = world_bounds(selfTransform, selfHitbox);
+            bounds.halfExtents += glm::abs(selfVelocity.value * dt);
             candidates.clear();
-            hash.query(query, candidates);
+            hash.query(bounds, candidates);
 
             // Deepest contact wins this iteration (stable: candidates are id-sorted).
             Manifold deepest;
@@ -80,10 +125,8 @@ void collision_step(Registry& registry, float dt) {
                 const Transform& otherTransform = registry.get<Transform>(other);
                 const Hitbox& otherHitbox = registry.get<Hitbox>(other);
                 const glm::vec2 otherCenter = otherTransform.position + otherHitbox.offset;
-                const Manifold m =
-                    otherHitbox.shape == HitboxShape::AABB
-                        ? circle_vs_aabb(circle, AABB{otherCenter, otherHitbox.halfExtents})
-                        : circle_vs_circle(circle, Circle{otherCenter, otherHitbox.radius});
+                const Manifold m = collide(selfHitbox, selfCenter, selfRot, otherHitbox,
+                                           otherCenter, otherTransform.rotation);
                 if (m.hit && m.penetration > deepest.penetration) {
                     deepest = m;
                 }

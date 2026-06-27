@@ -28,7 +28,13 @@ ShipDef parse_ship(const nlohmann::json& j) {
     def.frameSize = read_vec2(sprite.at("frameSize"));
 
     if (j.contains("hitbox")) {
-        def.hitboxRadius = j.at("hitbox").value("radius", def.hitboxRadius);
+        const nlohmann::json& hb = j.at("hitbox");
+        def.hitboxRadius = hb.value("radius", def.hitboxRadius);
+        if (hb.contains("polygon")) {
+            for (const nlohmann::json& v : hb.at("polygon")) {
+                def.hitboxPolygon.push_back(read_vec2(v));
+            }
+        }
     }
 
     const nlohmann::json& stats = j.at("stats");

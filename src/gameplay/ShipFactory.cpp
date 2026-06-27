@@ -36,8 +36,19 @@ Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
     registry.emplace<SpriteRender>(entity, sprite);
 
     Hitbox hitbox;
-    hitbox.shape = HitboxShape::Circle;
-    hitbox.radius = def.hitboxRadius;
+    if (!def.hitboxPolygon.empty()) {
+        hitbox.shape = HitboxShape::Polygon;
+        hitbox.vertexCount = 0;
+        for (const glm::vec2& v : def.hitboxPolygon) {
+            if (hitbox.vertexCount >= kMaxHitboxVerts) {
+                break;
+            }
+            hitbox.vertices[hitbox.vertexCount++] = v;
+        }
+    } else {
+        hitbox.shape = HitboxShape::Circle;
+        hitbox.radius = def.hitboxRadius;
+    }
     registry.emplace<Hitbox>(entity, hitbox);
     // Ships collide with walls.
     registry.emplace<CollisionLayer>(entity, CollisionLayer{layer::Ship, layer::Wall});

@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 
 #include <string>
+#include <vector>
 
 namespace sc {
 
@@ -24,7 +25,8 @@ struct ShipDef {
     std::string normalSheet;       // normal map path (optional)
     int frameCount = 1;            // horizontal frames in the sheet
     glm::vec2 frameSize{1.0f, 1.0f}; // meters
-    float hitboxRadius = 0.5f;     // meters (circle collider)
+    float hitboxRadius = 0.5f;       // meters (circle collider, if no polygon)
+    std::vector<glm::vec2> hitboxPolygon; // convex local verts (meters); empty → circle
     ShipStatsData stats;
 };
 
