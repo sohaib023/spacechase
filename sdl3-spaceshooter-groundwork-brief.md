@@ -54,8 +54,31 @@ These are the rules the rest of the design must not violate:
    are *data files* interpreted by generic systems — not hardcoded classes. Adding a new weapon
    should usually mean adding a definition file plus, at most, a small composable component, never a
    new subclass.
-2. **Composition over inheritance (ECS).** Behavior is assembled from components and systems. This is
-   how the ability variety stays maintainable.
+   *Why this is non-negotiable here, not stylistic:* the player-facing level editor implies content
+   must live in data that the editor and runtime both read — if abilities were code, players couldn't
+   create them and the editor couldn't enumerate them. So data-driven is implied by a feature already
+   on the list, not a preference. Secondary wins that come for free: tuning ship/ability params without
+   recompiling (fast iteration), and community/mod content as a multiplier if the game finds a
+   following.
+
+   (This is incorrect. For abilities we dont want it to be modifiable by users, but ofc, the same design principles would still be nice from a development pov I guess.)
+2. **Composition over inheritance.** Behavior is assembled from small, mixable components — not class
+   trees.
+   *Why this is non-negotiable here:* the ability design has several *orthogonal* axes that combine
+   freely — projectile type (bullet / missile / mine / ray / chi) × homing × fire cadence × stream
+   count × … . Under inheritance, every combination wants to be its own class
+   (`HeatseekingMultifireMissile`), so the class count grows *multiplicatively* with the number of
+   axes — the classic combinatorial subclass explosion. Composition turns that multiplication into
+   addition: one component per axis, mixed at will. This is precisely the case inheritance handles
+   worst, which is what makes it load-bearing rather than a slogan.
+   *How far to take it (and what to challenge):* hold the *principle* (composition + data-driven)
+   firm. Treat the specific **ECS framework** (EnTT) as the *negotiable* part — it buys composition
+   plus good performance over many entities, but it adds indirection and less linear debugging than a
+   straight call stack. Lighter structures (has-a components, struct-of-arrays) can deliver most of
+   the benefit without a full ECS; if a formal ECS starts to feel heavier than this game needs,
+   push back on it in planning. Note also that all of this emphasis is *conditional on the scope
+   above* (unbounded ability variety + combining modifiers + a player editor) — a small, fixed game
+   would not warrant it.
 3. **One source of truth for content.** The editor and the runtime load the *same* definition
    registries and the *same* level format. The editor is a thin authoring layer over runtime data.
 4. **Fixed-timestep simulation, decoupled from rendering.** Simulation runs at a fixed rate;
