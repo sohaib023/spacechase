@@ -9,6 +9,7 @@
 #include "ecs/World.hpp"
 #include "gameplay/FallConfig.hpp"
 #include "gameplay/Level.hpp"
+#include "gameplay/Spawning.hpp"
 #include "render/Camera.hpp"
 #include "render/CameraFollow.hpp"
 #include "render/Renderer.hpp"
@@ -56,6 +57,7 @@ private:
     DefinitionRegistry m_defs; // loaded content definitions (source of truth)
     Level m_level;             // floor + void rects (continuous meters)
     FallConfig m_fallConfig;   // pseudo-3D falling tunables
+    Deferred m_deferred;       // per-step spawn/despawn queues (flushed each step)
     glm::vec2 m_spawn{0.0f, 0.0f};
 
     TextureHandle m_debugTexture = kInvalidTexture; // debug-draw marker/beam

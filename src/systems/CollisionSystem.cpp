@@ -2,6 +2,7 @@
 
 #include "components/CollisionLayer.hpp"
 #include "components/Hitbox.hpp"
+#include "components/Projectile.hpp"
 #include "components/StaticTag.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
@@ -96,6 +97,12 @@ void collision_step(Registry& registry, float dt) {
     std::vector<Entity> candidates;
     for (const Entity self : ordered) {
         if (registry.all_of<StaticTag>(self)) {
+            continue;
+        }
+        // Projectiles get no push-out/slide: hits are resolved by the swept
+        // raycast in projectile_hit_step. They still seed the broadphase above so
+        // other movers see them.
+        if (registry.all_of<Projectile>(self)) {
             continue;
         }
         const Hitbox& selfHitbox = registry.get<Hitbox>(self);

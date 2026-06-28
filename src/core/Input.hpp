@@ -9,6 +9,8 @@ namespace sc {
 struct InputActions {
     float thrust = 0.0f; // +1 forward, -1 reverse
     float turn = 0.0f;   // +1 turn left (CCW), -1 turn right (CW)
+    bool fire1 = false;  // primary fire (projectile)
+    bool fire2 = false;  // secondary fire (beam)
 };
 
 } // namespace sc

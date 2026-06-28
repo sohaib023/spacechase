@@ -16,15 +16,20 @@
 #include "data/LevelLoader.hpp"
 #include "data/ShipDef.hpp"
 #include "data/WallDef.hpp"
+#include "gameplay/Abilities.hpp"
 #include "gameplay/ShipFactory.hpp"
+#include "gameplay/Spawning.hpp"
 #include "gameplay/WallFactory.hpp"
 #include "physics/Raycast.hpp"
 #include "systems/CollisionSystem.hpp"
+#include "systems/FireSystem.hpp"
 #include "systems/FloorAltitudeSystem.hpp"
 #include "systems/ForceFieldSystem.hpp"
 #include "systems/InputSystem.hpp"
+#include "systems/LifetimeSystem.hpp"
 #include "systems/LightingSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/ProjectileMoveSystem.hpp"
 #include "systems/RenderCollectSystem.hpp"
 
 #include <SDL3/SDL.h>
@@ -35,6 +40,7 @@
 #include <cmath>
 #include <limits>
 #include <string>
+#include <utility>
 
 namespace sc {
 
@@ -160,6 +166,29 @@ bool App::init() {
     m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture, shipNormal, m_spawn,
                                     /*facing=*/0.0f, /*playerControlled=*/true);
 
+    // Build the player's ability loadout in code (abilities are not JSON content).
+    // Resolve projectile sprite paths to texture handles now so fire_step stays
+    // GPU-free. fire1 = blaster (projectile); fire2 = machine-gun beam (M5.6).
+    {
+        AbilityLoadout loadout;
+        const auto add_slot = [&](const char* id, const char* action) {
+            if (const AbilityDef* def = find_ability(id)) {
+                AbilitySlot slot;
+                slot.ability = *def;
+                slot.action = action;
+                slot.projAlbedo = def->projectile.sprite.empty()
+                                      ? kInvalidTexture
+                                      : m_textures.load(m_gpu, std::string(SC_ASSET_DIR) + "/" +
+                                                                  def->projectile.sprite);
+                slot.projNormal = loadNormal(def->projectile.normal);
+                loadout.slots.push_back(std::move(slot));
+            }
+        };
+        add_slot("blaster", "fire1");
+        add_slot("machinegun", "fire2");
+        m_world.registry.emplace<AbilityLoadout>(m_world.playerShip, std::move(loadout));
+    }
+
     // Lights from the level (directional + point), as Transform + Light entities.
     for (const LightInstance& instance : levelData.lights) {
         const Entity lightEntity = m_world.registry.create();
@@ -233,17 +262,23 @@ void App::run() {
             if (keys[SDL_SCANCODE_S] || keys[SDL_SCANCODE_DOWN]) actions.thrust -= 1.0f;
             if (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT]) actions.turn += 1.0f;
             if (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT]) actions.turn -= 1.0f;
+            if (keys[SDL_SCANCODE_SPACE]) actions.fire1 = true;
+            if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) actions.fire2 = true;
         }
 
         // --- Fixed-step simulation pipeline ---
         while (accumulator >= kFixedDt) {
             snapshot_prev_transforms(m_world.registry);
             input_apply(m_world.registry, actions);
+            fire_step(m_world.registry, actions, m_deferred, kFixedDt); // queue projectile spawns
             apply_fall_control(m_world.registry, m_fallConfig); // lock thrust if falling
             movement_step(m_world.registry, kFixedDt);
+            projectile_move_step(m_world.registry, kFixedDt); // straight-line bullets
             forcefield_step(m_world.registry, kFixedDt);
             collision_step(m_world.registry, kFixedDt);
             floor_altitude_step(m_world.registry, m_level, m_fallConfig, m_spawn, kFixedDt);
+            lifetime_step(m_world.registry, m_deferred, kFixedDt);   // expire projectiles
+            commit_deferred(m_world.registry, m_deferred);           // flush spawns/despawns
             accumulator -= kFixedDt;
         }
         const float alpha = static_cast<float>(accumulator / kFixedDt);
