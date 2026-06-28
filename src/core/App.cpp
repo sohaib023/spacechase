@@ -29,6 +29,7 @@
 #include "systems/LifetimeSystem.hpp"
 #include "systems/LightingSystem.hpp"
 #include "systems/MovementSystem.hpp"
+#include "systems/ProjectileHitSystem.hpp"
 #include "systems/ProjectileMoveSystem.hpp"
 #include "systems/RenderCollectSystem.hpp"
 
@@ -276,6 +277,7 @@ void App::run() {
             projectile_move_step(m_world.registry, kFixedDt); // straight-line bullets
             forcefield_step(m_world.registry, kFixedDt);
             collision_step(m_world.registry, kFixedDt);
+            projectile_hit_step(m_world.registry, m_deferred);       // swept raycast bullets
             floor_altitude_step(m_world.registry, m_level, m_fallConfig, m_spawn, kFixedDt);
             lifetime_step(m_world.registry, m_deferred, kFixedDt);   // expire projectiles
             commit_deferred(m_world.registry, m_deferred);           // flush spawns/despawns

@@ -127,6 +127,7 @@ add_executable(SpaceChase
     src/systems/ForceFieldSystem.cpp
     src/systems/LifetimeSystem.cpp
     src/systems/LightingSystem.cpp
+    src/systems/ProjectileHitSystem.cpp
     src/systems/ProjectileMoveSystem.cpp
     src/systems/RenderCollectSystem.cpp
     src/gameplay/Abilities.cpp
@@ -188,6 +189,7 @@ add_executable(SpaceChase_tests
     tests/test_forcefield.cpp
     tests/test_fire.cpp
     tests/test_lifetime.cpp
+    tests/test_projectile_hit.cpp
     src/data/DefinitionRegistry.cpp   # exercised by test_definitions + test_level
     src/data/LevelLoader.cpp          # exercised by test_level
     src/systems/MovementSystem.cpp    # exercised by test_movement
@@ -200,9 +202,10 @@ add_executable(SpaceChase_tests
     src/gameplay/Abilities.cpp        # exercised by test_fire
     src/gameplay/ProjectileFactory.cpp # exercised by test_lifetime (commit_deferred)
     src/gameplay/Spawning.cpp         # exercised by test_fire + test_lifetime
+    src/systems/ProjectileHitSystem.cpp # exercised by test_projectile_hit
     src/physics/Overlap.cpp           # exercised by test_overlap + collision
     src/physics/SpatialHash.cpp       # exercised by test_spatial_hash + collision
-    src/physics/Raycast.cpp           # exercised by test_raycast
+    src/physics/Raycast.cpp           # exercised by test_raycast + projectile_hit
 )
 target_include_directories(SpaceChase_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 # SDL3 is linked because DefinitionRegistry logs via SDL_Log; glm/EnTT/json for the logic.
