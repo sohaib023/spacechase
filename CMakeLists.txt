@@ -123,6 +123,7 @@ add_executable(SpaceChase
     src/systems/MovementSystem.cpp
     src/systems/CollisionSystem.cpp
     src/systems/FloorAltitudeSystem.cpp
+    src/systems/ForceFieldSystem.cpp
     src/systems/LightingSystem.cpp
     src/systems/RenderCollectSystem.cpp
     src/gameplay/ShipFactory.cpp
@@ -178,12 +179,14 @@ add_executable(SpaceChase_tests
     tests/test_falling.cpp
     tests/test_level.cpp
     tests/test_lights.cpp
+    tests/test_forcefield.cpp
     src/data/DefinitionRegistry.cpp   # exercised by test_definitions + test_level
     src/data/LevelLoader.cpp          # exercised by test_level
     src/systems/MovementSystem.cpp    # exercised by test_movement
     src/systems/CollisionSystem.cpp   # exercised by test_collision_resolve
     src/systems/FloorAltitudeSystem.cpp # exercised by test_falling
     src/systems/LightingSystem.cpp    # exercised by test_lights
+    src/systems/ForceFieldSystem.cpp  # exercised by test_forcefield
     src/physics/Overlap.cpp           # exercised by test_overlap + collision
     src/physics/SpatialHash.cpp       # exercised by test_spatial_hash + collision
     src/physics/Raycast.cpp           # exercised by test_raycast

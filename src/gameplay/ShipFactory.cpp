@@ -2,6 +2,8 @@
 
 #include "components/Altitude.hpp"
 #include "components/CollisionLayer.hpp"
+#include "components/Deflector.hpp"
+#include "components/ForceResponse.hpp"
 #include "components/Hitbox.hpp"
 #include "components/PlayerControlled.hpp"
 #include "components/PrevTransform.hpp"
@@ -52,6 +54,8 @@ Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
     registry.emplace<Hitbox>(entity, hitbox);
     // Ships collide with walls.
     registry.emplace<CollisionLayer>(entity, CollisionLayer{layer::Ship, layer::Wall});
+    registry.emplace<ForceResponse>(entity, ForceResponse{ForceResponseType::Deflectable});
+    registry.emplace<Deflector>(entity); // defensive ability, inactive by default
     registry.emplace<Altitude>(entity); // hovering at default height
 
     if (playerControlled) {

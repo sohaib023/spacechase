@@ -2,6 +2,8 @@
 
 #include "components/Altitude.hpp"
 #include "components/CollisionLayer.hpp"
+#include "components/Deflector.hpp"
+#include "components/ForceField.hpp"
 #include "components/Health.hpp"
 #include "components/Light.hpp"
 #include "components/PrevTransform.hpp"
@@ -19,6 +21,7 @@
 #include "physics/Raycast.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/FloorAltitudeSystem.hpp"
+#include "systems/ForceFieldSystem.hpp"
 #include "systems/InputSystem.hpp"
 #include "systems/LightingSystem.hpp"
 #include "systems/MovementSystem.hpp"
@@ -164,6 +167,13 @@ bool App::init() {
         m_world.registry.emplace<Light>(lightEntity, instance.light);
     }
 
+    // Force-field sources from the level (wind zones, etc.).
+    for (const ForceFieldInstance& instance : levelData.forceFields) {
+        const Entity fieldEntity = m_world.registry.create();
+        m_world.registry.emplace<Transform>(fieldEntity, Transform{instance.position, 0.0f});
+        m_world.registry.emplace<ForceField>(fieldEntity, instance.field);
+    }
+
     // A draggable debug point light (ImGui-controlled) to exercise the lighting.
     m_debugLight = m_world.registry.create();
     m_world.registry.emplace<Transform>(m_debugLight, Transform{{4.0f, 2.0f}, 0.0f});
@@ -231,6 +241,7 @@ void App::run() {
             input_apply(m_world.registry, actions);
             apply_fall_control(m_world.registry, m_fallConfig); // lock thrust if falling
             movement_step(m_world.registry, kFixedDt);
+            forcefield_step(m_world.registry, kFixedDt);
             collision_step(m_world.registry, kFixedDt);
             floor_altitude_step(m_world.registry, m_level, m_fallConfig, m_spawn, kFixedDt);
             accumulator -= kFixedDt;
@@ -272,6 +283,13 @@ void App::run() {
                 ImGui::SliderFloat("drag", &stats.drag, 0.0f, 5.0f);
                 ImGui::Checkbox("debug ray", &m_showDebugRay);
                 ImGui::Checkbox("control while falling", &m_fallConfig.controlWhileFalling);
+                if (Deflector* deflector = reg.try_get<Deflector>(player)) {
+                    ImGui::Checkbox("deflector ability", &deflector->active);
+                    if (deflector->active) {
+                        ImGui::SliderFloat("deflect strength", &deflector->strength, 0.0f, 200.0f);
+                        ImGui::SliderFloat("deflect range", &deflector->range, 1.0f, 15.0f);
+                    }
+                }
                 if (ImGui::Button("damage nearest crate")) {
                     // Exercises Health + despawn (no weapons until M5). Crates are
                     // the only walls with Health.

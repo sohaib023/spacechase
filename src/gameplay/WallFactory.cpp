@@ -1,6 +1,7 @@
 #include "gameplay/WallFactory.hpp"
 
 #include "components/CollisionLayer.hpp"
+#include "components/ForceResponse.hpp"
 #include "components/Health.hpp"
 #include "components/Hitbox.hpp"
 #include "components/PrevTransform.hpp"
@@ -33,6 +34,7 @@ Entity spawn_wall(Registry& registry, TextureHandle texture, TextureHandle norma
 
     // Walls sit on the Wall layer; they don't initiate resolution (mask 0).
     registry.emplace<CollisionLayer>(entity, CollisionLayer{layer::Wall, 0u});
+    registry.emplace<ForceResponse>(entity, ForceResponse{ForceResponseType::Rigid});
     registry.emplace<StaticTag>(entity);
     registry.emplace<Wall>(entity, Wall{destructible});
     if (destructible) {

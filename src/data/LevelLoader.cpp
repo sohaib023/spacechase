@@ -71,6 +71,23 @@ bool load_level(const std::filesystem::path& path, LevelData& out) {
             }
             out.lights.push_back(instance);
         }
+        for (const nlohmann::json& field : json.value("forceFields", nlohmann::json::array())) {
+            ForceFieldInstance instance;
+            instance.position = read_vec2(field.at("position"));
+            instance.field.shape = field.value("shape", std::string("radial")) == "directional"
+                                       ? FieldShape::Directional
+                                       : FieldShape::Radial;
+            if (field.contains("dir")) {
+                instance.field.dir = read_vec2(field.at("dir"));
+            }
+            instance.field.strength = field.value("strength", 0.0f);
+            instance.field.range = field.value("range", 10.0f);
+            const std::string falloff = field.value("falloff", std::string("linear"));
+            instance.field.falloff = falloff == "none"           ? FalloffType::None
+                                     : falloff == "inverseSquare" ? FalloffType::InverseSquare
+                                                                  : FalloffType::Linear;
+            out.forceFields.push_back(instance);
+        }
     } catch (const std::exception& e) {
         SC_LOG_ERROR("Failed to parse level %s: %s", path.string().c_str(), e.what());
         return false;

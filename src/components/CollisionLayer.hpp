@@ -11,7 +11,8 @@ namespace sc {
 namespace layer {
 inline constexpr std::uint32_t Ship = 1u << 0;
 inline constexpr std::uint32_t Wall = 1u << 1;
-// Projectile, Pickup, ... added as needed.
+inline constexpr std::uint32_t Projectile = 1u << 2;
+// Pickup, ... added as needed.
 } // namespace layer
 
 struct CollisionLayer {
