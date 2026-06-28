@@ -190,6 +190,7 @@ add_executable(SpaceChase_tests
     tests/test_fire.cpp
     tests/test_lifetime.cpp
     tests/test_projectile_hit.cpp
+    tests/test_abilities.cpp
     src/data/DefinitionRegistry.cpp   # exercised by test_definitions + test_level
     src/data/LevelLoader.cpp          # exercised by test_level
     src/systems/MovementSystem.cpp    # exercised by test_movement

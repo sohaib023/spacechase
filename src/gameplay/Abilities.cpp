@@ -41,6 +41,24 @@ std::vector<AbilityDef> build_abilities() {
 
 } // namespace
 
+void apply_modifier(FireContext& context, const ModifierDef& modifier) {
+    switch (modifier.kind) {
+    case ModifierKind::Multifire:
+        context.count += static_cast<int>(modifier.a); // extra shots
+        context.spread = modifier.b;                   // total spread radians
+        break;
+    case ModifierKind::Quickfire:
+        context.cooldownMult *= modifier.a;            // <1 fires faster
+        if (modifier.b > 0.0f) {
+            context.speedMult *= modifier.b;
+        }
+        break;
+    case ModifierKind::Autofire:
+        context.autofire = true;
+        break;
+    }
+}
+
 const AbilityDef* find_ability(std::string_view id) {
     static const std::vector<AbilityDef> table = build_abilities();
     for (const AbilityDef& def : table) {

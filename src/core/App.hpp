@@ -64,6 +64,9 @@ private:
     TextureHandle m_floorTexture = kInvalidTexture;
     TextureHandle m_backgroundTexture = kInvalidTexture; // unlit void backdrop
     bool m_showDebugRay = true;
+    bool m_modMultifire = false; // weapon modifier debug toggles (applied to fire1)
+    bool m_modQuickfire = false;
+    bool m_modAutofire = false;
 
     glm::vec4 m_ambient{0.12f, 0.12f, 0.18f, 1.0f};   // rgb + strength
     glm::vec4 m_lightParams{32.0f, 0.5f, 0.0f, 0.0f}; // shininess, specular strength

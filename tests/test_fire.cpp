@@ -13,7 +13,8 @@ using namespace sc;
 namespace {
 constexpr float kDt = 1.0f / 60.0f;
 
-Entity make_shooter(Registry& reg, AbilityCategory category, float cooldown) {
+Entity make_shooter(Registry& reg, AbilityCategory category, float cooldown,
+                    bool autofire = false) {
     const Entity e = reg.create();
     reg.emplace<Transform>(e, Transform{{0.0f, 0.0f}, 0.0f});
     reg.emplace<PlayerControlled>(e);
@@ -23,6 +24,9 @@ Entity make_shooter(Registry& reg, AbilityCategory category, float cooldown) {
     slot.ability.cooldown = cooldown;
     slot.ability.projectile.speed = 10.0f;
     slot.action = "fire1";
+    if (autofire) {
+        slot.modifiers.push_back(ModifierDef{ModifierKind::Autofire, 0.0f, 0.0f});
+    }
     loadout.slots.push_back(slot);
     reg.emplace<AbilityLoadout>(e, loadout);
     return e;
@@ -40,10 +44,10 @@ TEST_CASE("fires on the first held step and goes on cooldown") {
     CHECK(reg.get<AbilityLoadout>(e).slots[0].cooldownRemaining == doctest::Approx(0.5f));
 }
 
-TEST_CASE("holds fire on cooldown, then fires again once it elapses") {
+TEST_CASE("autofire holds on cooldown, then fires again once it elapses") {
     Registry reg;
     Deferred deferred;
-    make_shooter(reg, AbilityCategory::Projectile, 0.2f);
+    make_shooter(reg, AbilityCategory::Projectile, 0.2f, /*autofire=*/true);
     InputActions actions;
     actions.fire1 = true;
     fire_step(reg, actions, deferred, kDt); // shot 1 (cooldown -> 0.2)

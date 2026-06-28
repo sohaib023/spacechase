@@ -327,6 +327,28 @@ void App::run() {
                         ImGui::SliderFloat("deflect range", &deflector->range, 1.0f, 15.0f);
                     }
                 }
+                if (AbilityLoadout* loadout = reg.try_get<AbilityLoadout>(player)) {
+                    ImGui::SeparatorText("weapon modifiers (fire1 = Space)");
+                    ImGui::Checkbox("multifire", &m_modMultifire);
+                    ImGui::Checkbox("quickfire", &m_modQuickfire);
+                    ImGui::Checkbox("autofire", &m_modAutofire);
+                    // Rebuild the projectile slot's modifier list from the toggles.
+                    for (AbilitySlot& slot : loadout->slots) {
+                        if (slot.ability.category != AbilityCategory::Projectile) {
+                            continue;
+                        }
+                        slot.modifiers.clear();
+                        if (m_modMultifire) {
+                            slot.modifiers.push_back({ModifierKind::Multifire, 2.0f, 0.35f});
+                        }
+                        if (m_modQuickfire) {
+                            slot.modifiers.push_back({ModifierKind::Quickfire, 0.4f, 1.0f});
+                        }
+                        if (m_modAutofire) {
+                            slot.modifiers.push_back({ModifierKind::Autofire, 0.0f, 0.0f});
+                        }
+                    }
+                }
                 if (ImGui::Button("damage nearest crate")) {
                     // Exercises Health + despawn (no weapons until M5). Crates are
                     // the only walls with Health.

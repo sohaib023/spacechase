@@ -53,6 +53,20 @@ struct ModifierDef {
     float b = 0.0f; // kind-specific (Multifire: total spread rad; Quickfire: speed mult)
 };
 
+// Per-shot parameters folded from an AbilityDef + its modifiers. fire_step starts
+// from the ability's defaults, folds each modifier via apply_modifier, then emits
+// shots accordingly. Adding a modifier behavior = a new ModifierKind + a case here,
+// never a new firing path.
+struct FireContext {
+    int count = 1;            // shots per trigger
+    float spread = 0.0f;      // total angular spread (radians), centered on facing
+    float speedMult = 1.0f;   // projectile speed multiplier
+    float cooldownMult = 1.0f; // cooldown multiplier (<1 = faster)
+    bool autofire = false;    // hold-to-fire instead of one-per-press
+};
+
+void apply_modifier(FireContext& context, const ModifierDef& modifier);
+
 // One equipped ability bound to a fire action, with its resolved sprite handles
 // and live cooldown state.
 struct AbilitySlot {

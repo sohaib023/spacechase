@@ -22,7 +22,6 @@ void fire_step(Registry& registry, const InputActions& actions, Deferred& deferr
     for (const Entity shooter : view) {
         AbilityLoadout& loadout = view.get<AbilityLoadout>(shooter);
         const Transform& transform = view.get<Transform>(shooter);
-        const glm::vec2 forward{-std::sin(transform.rotation), std::cos(transform.rotation)};
 
         for (AbilitySlot& slot : loadout.slots) {
             slot.cooldownRemaining = std::max(0.0f, slot.cooldownRemaining - dt);
@@ -34,19 +33,39 @@ void fire_step(Registry& registry, const InputActions& actions, Deferred& deferr
                 continue;
             }
 
-            if (held && slot.cooldownRemaining <= 0.0f) {
+            // Fold the ability's defaults through its modifiers into a FireContext.
+            FireContext context;
+            for (const ModifierDef& modifier : slot.modifiers) {
+                apply_modifier(context, modifier);
+            }
+
+            // Autofire holds to fire; otherwise one shot per press (rising edge).
+            // Either way the cooldown gates the cadence.
+            const bool trigger = context.autofire ? held : (held && !slot.wasHeld);
+            if (trigger && slot.cooldownRemaining <= 0.0f) {
                 const ProjectileParams& params = slot.ability.projectile;
-                ProjectileSpawn spawn;
-                spawn.params = params;
-                spawn.albedo = slot.projAlbedo;
-                spawn.normal = slot.projNormal;
-                spawn.position = transform.position + forward * kMuzzleOffset;
-                spawn.velocity = forward * params.speed;
-                spawn.rotation = transform.rotation;
-                spawn.owner = shooter;
-                spawn.team = 0;
-                deferred.spawns.push_back(spawn);
-                slot.cooldownRemaining = slot.ability.cooldown;
+                const float speed = params.speed * context.speedMult;
+                for (int shot = 0; shot < context.count; ++shot) {
+                    const float offset =
+                        context.count > 1
+                            ? -context.spread * 0.5f +
+                                  context.spread * static_cast<float>(shot) /
+                                      static_cast<float>(context.count - 1)
+                            : 0.0f;
+                    const float rotation = transform.rotation + offset;
+                    const glm::vec2 dir{-std::sin(rotation), std::cos(rotation)};
+                    ProjectileSpawn spawn;
+                    spawn.params = params;
+                    spawn.albedo = slot.projAlbedo;
+                    spawn.normal = slot.projNormal;
+                    spawn.position = transform.position + dir * kMuzzleOffset;
+                    spawn.velocity = dir * speed;
+                    spawn.rotation = rotation;
+                    spawn.owner = shooter;
+                    spawn.team = 0;
+                    deferred.spawns.push_back(spawn);
+                }
+                slot.cooldownRemaining = slot.ability.cooldown * context.cooldownMult;
             }
             slot.wasHeld = held;
         }
