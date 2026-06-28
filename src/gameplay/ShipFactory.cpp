@@ -1,6 +1,7 @@
 #include "gameplay/ShipFactory.hpp"
 
 #include "components/Altitude.hpp"
+#include "components/BeamRequest.hpp"
 #include "components/CollisionLayer.hpp"
 #include "components/Deflector.hpp"
 #include "components/ForceResponse.hpp"
@@ -55,8 +56,9 @@ Entity spawn_ship(Registry& registry, const ShipDef& def, TextureHandle texture,
     // Ships collide with walls.
     registry.emplace<CollisionLayer>(entity, CollisionLayer{layer::Ship, layer::Wall});
     registry.emplace<ForceResponse>(entity, ForceResponse{ForceResponseType::Deflectable});
-    registry.emplace<Deflector>(entity); // defensive ability, inactive by default
-    registry.emplace<Altitude>(entity); // hovering at default height
+    registry.emplace<Deflector>(entity);    // defensive ability, inactive by default
+    registry.emplace<BeamRequest>(entity);  // machine-gun beam intent (inactive)
+    registry.emplace<Altitude>(entity);     // hovering at default height
 
     if (playerControlled) {
         registry.emplace<PlayerControlled>(entity);

@@ -1,5 +1,6 @@
 #include "systems/FireSystem.hpp"
 
+#include "components/BeamRequest.hpp"
 #include "components/PlayerControlled.hpp"
 #include "components/Transform.hpp"
 #include "core/Input.hpp"
@@ -27,8 +28,16 @@ void fire_step(Registry& registry, const InputActions& actions, Deferred& deferr
             slot.cooldownRemaining = std::max(0.0f, slot.cooldownRemaining - dt);
             const bool held = (slot.action == "fire2") ? actions.fire2 : actions.fire1;
 
-            // Beam abilities are driven by beam_step (M5.6), not the spawn queue.
-            if (slot.ability.category != AbilityCategory::Projectile) {
+            // Beam abilities set a BeamRequest for beam_step (continuous hitscan),
+            // rather than queuing discrete spawns.
+            if (slot.ability.category == AbilityCategory::Beam) {
+                if (BeamRequest* beam = registry.try_get<BeamRequest>(shooter)) {
+                    beam->active = held;
+                    beam->damage = slot.ability.beam.damage;
+                    beam->maxDist = slot.ability.beam.maxDist;
+                    beam->width = slot.ability.beam.width;
+                    beam->color = slot.ability.beam.color;
+                }
                 slot.wasHeld = held;
                 continue;
             }

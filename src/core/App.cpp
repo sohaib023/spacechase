@@ -21,6 +21,7 @@
 #include "gameplay/Spawning.hpp"
 #include "gameplay/WallFactory.hpp"
 #include "physics/Raycast.hpp"
+#include "systems/BeamSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/FireSystem.hpp"
 #include "systems/FloorAltitudeSystem.hpp"
@@ -278,6 +279,7 @@ void App::run() {
             forcefield_step(m_world.registry, kFixedDt);
             collision_step(m_world.registry, kFixedDt);
             projectile_hit_step(m_world.registry, m_deferred);       // swept raycast bullets
+            beam_step(m_world.registry, m_beams, m_deferred, kFixedDt); // hitscan machine-gun
             floor_altitude_step(m_world.registry, m_level, m_fallConfig, m_spawn, kFixedDt);
             lifetime_step(m_world.registry, m_deferred, kFixedDt);   // expire projectiles
             commit_deferred(m_world.registry, m_deferred);           // flush spawns/despawns
@@ -448,6 +450,21 @@ void App::run() {
                             glm::vec2(1.0f), /*unlit=*/true);
             if (hit.hit) {
                 m_renderer.draw(m_debugTexture, hit.point, glm::vec2(0.4f, 0.4f), 0.0f,
+                                glm::vec2(0.0f), glm::vec2(1.0f), /*unlit=*/true);
+            }
+        }
+
+        // Machine-gun beams (thin unlit quads from muzzle to hit/clip point).
+        if (m_debugTexture != kInvalidTexture) {
+            for (const BeamSegment& beam : m_beams.beams) {
+                const glm::vec2 delta = beam.end - beam.start;
+                const float len = glm::length(delta);
+                if (len < 1e-4f) {
+                    continue;
+                }
+                const glm::vec2 mid = (beam.start + beam.end) * 0.5f;
+                const float phi = std::atan2(delta.y, delta.x);
+                m_renderer.draw(m_debugTexture, mid, glm::vec2(len, beam.width), phi,
                                 glm::vec2(0.0f), glm::vec2(1.0f), /*unlit=*/true);
             }
         }

@@ -14,6 +14,7 @@
 #include "render/CameraFollow.hpp"
 #include "render/Renderer.hpp"
 #include "resources/TextureRegistry.hpp"
+#include "systems/BeamSystem.hpp"
 
 #include <glm/glm.hpp>
 
@@ -58,6 +59,7 @@ private:
     Level m_level;             // floor + void rects (continuous meters)
     FallConfig m_fallConfig;   // pseudo-3D falling tunables
     Deferred m_deferred;       // per-step spawn/despawn queues (flushed each step)
+    BeamVizList m_beams;       // beams to draw this frame (filled by beam_step)
     glm::vec2 m_spawn{0.0f, 0.0f};
 
     TextureHandle m_debugTexture = kInvalidTexture; // debug-draw marker/beam
