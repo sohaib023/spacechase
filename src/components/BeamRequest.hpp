@@ -11,7 +11,9 @@ namespace sc {
 struct BeamRequest {
     bool active = false;     // fire2 held this step
     float damage = 0.0f;     // damage PER SECOND (continuous; scaled by dt)
-    float maxDist = 30.0f;   // meters
+    float maxDist = 30.0f;   // range: total path length in meters, across bounces
+    bool bounce = false;     // reflect off Reflective surfaces?
+    int maxBounces = 0;      // when bouncy: bounce limit (-1 = unlimited)
     float width = 0.12f;     // meters (viz)
     glm::vec3 color{1.0f, 0.4f, 0.2f};
 };

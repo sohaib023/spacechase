@@ -1,10 +1,12 @@
 #pragma once
 
-// Machine-gun beam (brief §6.3): a continuous hitscan. beam_step raycasts each
+// Machine-gun beam (brief §6.3): a continuous hitscan. beam_step traces each
 // active BeamRequest from its muzzle along facing vs layer::Wall, applies
-// per-second damage to the hit target (queuing destruction at zero Health), and
-// records a viz segment for the render section to draw. Single ray for now;
-// cone-blocking (N discrete rays) is deferred.
+// per-second damage to every entity it hits (queuing destruction at zero
+// Health), reflects off Reflective surfaces while the beam is bouncy with
+// bounces left, and stops at absorbent surfaces or when its range (maxDist,
+// shared across bounces) runs out. Each straight piece is recorded as a viz
+// segment. Single ray for now; cone-blocking (N discrete rays) is deferred.
 
 #include "ecs/Registry.hpp"
 

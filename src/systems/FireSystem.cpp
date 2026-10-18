@@ -35,6 +35,8 @@ void fire_step(Registry& registry, const InputActions& actions, Deferred& deferr
                     beam->active = held;
                     beam->damage = slot.ability.beam.damage;
                     beam->maxDist = slot.ability.beam.maxDist;
+                    beam->bounce = slot.ability.beam.bounce;
+                    beam->maxBounces = slot.ability.beam.maxBounces;
                     beam->width = slot.ability.beam.width;
                     beam->color = slot.ability.beam.color;
                 }
