@@ -76,13 +76,15 @@ Deflector (inactive), BeamRequest (inactive), Altitude, and PlayerControlled if 
   "normal": "sprites/crate_normal.png",   // optional
   "destructible": true,                   // default false
   "health": 100.0,                        // used if destructible
-  "halfExtents": [1.5, 1.5]               // default size (meters); instances may override
+  "halfExtents": [1.5, 1.5],              // default size (meters); instances may override
+  "surface": "absorbent"                  // absorbent (default) | reflective: bullets/beams bounce
 }
 ```
-Current defs: `wall` (indestructible, sized per instance) and `crate` (100 HP).
+Current defs: `wall` (indestructible, reflective, sized per instance) and `crate` (100 HP,
+absorbent).
 `WallFactory::spawn_wall` emplaces: Transform/PrevTransform, SpriteRender (size = 2·halfExtents),
-Hitbox(AABB), CollisionLayer{Wall, 0}, ForceResponse(Rigid), StaticTag, Wall{destructible}, and
-Health if destructible.
+Hitbox(AABB), CollisionLayer{Wall, 0}, ForceResponse(Rigid), SurfaceResponse(from `surface`),
+StaticTag, Wall{destructible}, and Health if destructible.
 
 ### Level: `assets/levels/*.json`
 ```json

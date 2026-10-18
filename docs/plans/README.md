@@ -16,6 +16,7 @@ Build order from the groundwork brief (§9), with status:
 | M3 | World & collision: meters, textures, physics layer, walls, raycast, falling, levels | ✅ done | [m3-collision-and-falling.md](m3-collision-and-falling.md) |
 | M4 | Normal-mapped 2.5D lighting (+ void/camera fixes, polygon hitboxes) | ✅ done | [m4-lighting.md](m4-lighting.md) |
 | M5 | Abilities, projectiles, modifiers, beam, force fields + deflector | ✅ done | [m5-abilities-and-forces.md](m5-abilities-and-forces.md) |
+| M5b | Ricochet (bullets + beam), reflective/absorbent surfaces, max range | ✅ done | [m5b-bounce-and-range.md](m5b-bounce-and-range.md) |
 | M6 | Environment depth: portals, machinery/explosions, multi-floor + parallax (+ optional pseudo-3D walls) | ⏳ next | *to plan* |
 | M7 | Level format + editor (ImGui), sharing the registries | planned | *to plan* |
 | M8 | Audio, HUD/UI | planned | *to plan* |
@@ -28,7 +29,9 @@ Build order from the groundwork brief (§9), with status:
   DXIL/SPIR-V/MSL.
 - **Hot-reload** of definitions and textures.
 - **Static-library layer split** (core/render/ecs/data) once the editor/net give a second consumer.
-- Abilities: deployables, chi/warp, shield, homing (needs enemies), cone machine gun.
+- Abilities: deployables, chi/warp (penetrates walls, loses speed and damage), shield, homing
+  (needs enemies), cone machine gun.
+- Simulation at 120 Hz (`kFixedDt`) if input latency ever feels sluggish.
 - Hash-accelerated + rotated-shape raycasts. Persistent spatial hash if counts grow.
 - Real death/scoring (falling currently respawns). Per-draw sprite tint.
 - Open design questions: [`../game-design/game-design.md`](../game-design/game-design.md#7-open-design-questions).

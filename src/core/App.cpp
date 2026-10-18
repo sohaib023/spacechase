@@ -391,6 +391,24 @@ void App::run() {
                             slot.modifiers.push_back({ModifierKind::Autofire, 0.0f, 0.0f});
                         }
                     }
+                    // Bounce traits, edited live on the equipped abilities. Projectile
+                    // changes apply to newly fired bullets; the beam updates instantly.
+                    ImGui::SeparatorText("bounce (-1 = unlimited bounces)");
+                    for (AbilitySlot& slot : loadout->slots) {
+                        if (slot.ability.category == AbilityCategory::Projectile) {
+                            ImGui::Checkbox("blaster bounce", &slot.ability.projectile.bounce);
+                            ImGui::SliderInt("blaster max bounces",
+                                             &slot.ability.projectile.maxBounces, -1, 10);
+                            ImGui::SliderFloat("blaster range (m)",
+                                               &slot.ability.projectile.maxRange, 5.0f, 100.0f);
+                        } else if (slot.ability.category == AbilityCategory::Beam) {
+                            ImGui::Checkbox("beam bounce", &slot.ability.beam.bounce);
+                            ImGui::SliderInt("beam max bounces", &slot.ability.beam.maxBounces,
+                                             -1, 10);
+                            ImGui::SliderFloat("beam range (m)", &slot.ability.beam.maxDist, 5.0f,
+                                               100.0f);
+                        }
+                    }
                 }
                 if (ImGui::Button("damage nearest crate")) {
                     // Exercises Health + despawn (no weapons until M5). Crates are

@@ -3,7 +3,7 @@
 The firing pipeline (projectiles, beam, modifiers), the projectile lifecycle, the unified
 force-field system, and the deferred spawn/despawn mechanism.
 Code: `src/gameplay/{Abilities,Spawning,ProjectileFactory}.*`,
-`src/systems/{Fire,ProjectileMove,ProjectileHit,Beam,Lifetime,ForceField}System.*`,
+`src/systems/{Fire,ProjectileMove,ProjectileHit,Beam,Lifetime,Range,ForceField}System.*`,
 `src/physics/ForceApi.hpp`.
 
 ---
@@ -16,12 +16,17 @@ design still applies: an ability is data + modifiers folded into spawns, never a
 
 ```cpp
 AbilityDef { id, displayName, category (Projectile | Beam), cooldown,
-             ProjectileParams { speed, damage, lifetime, hitboxRadius, spriteSize,
-                                sprite, normal, deflectable },
-             BeamParams       { damage /*per second*/, maxDist, width, color } }
+             ProjectileParams { speed, damage, maxRange, lifetime /*0 = none*/,
+                                bounce, maxBounces /*-1 = unlimited*/, hitboxRadius,
+                                spriteSize, sprite, normal, deflectable },
+             BeamParams       { damage /*per second*/, maxDist /*range*/, bounce,
+                                maxBounces, width, color } }
 ModifierDef { kind (Multifire | Quickfire | Autofire), a, b }
 const AbilityDef* find_ability(id);   // "blaster" (projectile), "machinegun" (beam)
 ```
+
+Current table: **blaster** = bouncy, unlimited bounces, 40 m range, no lifetime.
+**machinegun** = beam, 30 m range, bouncy with 2 bounces.
 
 **Loadout:** `AbilityLoadout { vector<AbilitySlot> }` component on a ship. An `AbilitySlot` holds
 a copy of the `AbilityDef`, its `modifiers`, the bound `action` (`"fire1"` / `"fire2"`), live
@@ -75,22 +80,35 @@ write a per-ship fire intent component instead (same pattern as `ShipControl`).
 ## 5. Projectile lifecycle
 
 `ProjectileFactory::spawn_projectile` emplaces: `Transform` + **equal `PrevTransform`** (no
-first-frame streak), `Velocity`, `Projectile` tag, `Lifetime`, `Damage`, `Owner{entity, team}`,
-`SpriteRender`, `Hitbox` (circle), `CollisionLayer{Projectile, Wall}`, and `ForceResponse`
-(Deflectable unless `params.deflectable == false`).
+first-frame streak), `Velocity`, `Projectile` tag, `Damage`, `Owner{entity, team}`,
+`SpriteRender`, `Hitbox` (circle), `CollisionLayer{Projectile, Wall}`, `ForceResponse`
+(Deflectable unless `params.deflectable == false`), plus three **independent, optional
+traits**: `Range{remaining}` (if `maxRange > 0`), `Lifetime` (if `lifetime > 0`) and
+`Bounce{remaining}` (if `bounce`; −1 = unlimited). No `Bounce` component = never bounces.
 
 Per step:
 1. `projectile_move_step`: `position += velocity · dt` (straight line; separate from ship movement
    because bullets have no stats/drag/turn).
 2. `forcefield_step` may bend them (wind, deflectors).
 3. `collision_step` **skips** `Projectile` entities (one guard line), so there's no push-out.
-4. **`projectile_hit_step` (swept raycast):** for each bullet in id order, raycast the segment
-   `PrevTransform → Transform` against `layer::Wall`. On a hit that isn't the owner: subtract
-   `Damage` from the target's `Health` (if any), queue the target for despawn if `Health ≤ 0`
-   (**this destroys crates**), and always queue the bullet for despawn. Sweeping the whole segment
-   makes fast bullets tunneling-proof.
+4. **`projectile_hit_step` (swept raycast + ricochet):** for each bullet in id order, walk the
+   step's path `PrevTransform → Transform` segment by segment against `layer::Wall`. Each hit
+   that isn't the owner subtracts `Damage` from the target's `Health` and queues the target at
+   ≤ 0 (**this destroys crates**). Then the bullet **ricochets** if it has `Bounce` with bounces
+   left *and* the surface is `Reflective`: velocity mirrored `v − 2(v·n)n` (same speed), the rest
+   of the path is swept again (≤ 8 hits per step as a corner guard), and `Transform`/`Velocity`/
+   rotation end where the path ends. Otherwise it's **absorbed** (queued for despawn). A zero hit
+   normal (ray started inside a box) counts as absorbed. Sweeping makes fast bullets
+   tunneling-proof.
 5. `lifetime_step`: `Lifetime.remaining −= dt`; at ≤ 0 queue despawn.
-6. `commit_deferred` applies it all.
+6. **`range_step`**: `Range.remaining −= |velocity| · dt`; at ≤ 0 queue despawn. **Independent of
+   bouncing** (the bounce code never touches `Range`). Since bounces never change speed, the path
+   length per step is exactly `speed · dt` whether or not the bullet ricocheted. A bullet can
+   overshoot its range by at most one step's travel (~0.4 m at 24 m/s).
+7. `commit_deferred` applies it all.
+
+A ricocheting bullet's render interpolation (`PrevTransform → Transform`) cuts the corner for one
+sub-step. That's invisible at 60 Hz.
 
 Rendering is automatic: projectiles have `SpriteRender` + transforms, so `render_collect` draws
 them (`sprites/bullet.png`).
@@ -99,13 +117,37 @@ them (`sprites/bullet.png`).
 
 - `BeamRequest{active, damage, maxDist, width, color}` component on every ship (inactive by
   default; primitive fields so it doesn't depend on `gameplay/`). `fire_step` sets it.
-- `beam_step(registry, viz, deferred, dt)`: clears `viz`; for each active request, raycast from
-  `ship + facing · 1 m` along facing vs `layer::Wall` up to `maxDist`. On a hit, `Health −= damage ·
-  dt` (**damage is per second**) and queue the target for despawn at ≤ 0. Append a
-  `BeamSegment{start, end, width, color}` (end = hit point or full length).
+- `beam_step(registry, viz, deferred, dt)`: clears `viz`; for each active request, traces a
+  **polyline** from `ship + facing · 1 m` along facing vs `layer::Wall`. `maxDist` is the beam's
+  **range, shared by all segments**. Each segment ends at a hit: `Health −= damage · dt`
+  (**damage is per second**, applied to every entity the beam touches, again for each touch), and
+  the target is queued for despawn at ≤ 0. The beam continues (reflected) only off a
+  `Reflective` surface while it's bouncy with bounces left (`bounce`, `maxBounces`, −1 =
+  unlimited). It stops at absorbent surfaces, the bounce limit, or when range runs out. There's a
+  hard cap of 16 segments. Every segment is appended as a `BeamSegment{start, end, width, color}`.
 - `App` owns the `BeamVizList` and draws each segment as a thin **unlit** quad after the world.
   Viz reflects the last fixed sub-step of the frame.
 - Single ray today. The planned **cone** machine gun (partly blocked by walls) = N thin rays.
+
+## 6b. Surfaces: the hit interaction rule
+
+What happens on a hit = f(**projectile/beam traits**, **surface response**):
+
+| | Surface `Absorbent` | Surface `Reflective` |
+|---|---|---|
+| Not bouncy (no `Bounce` / `bounce = false`) | damage, stop | damage, stop |
+| Bouncy, bounces left | damage, stop | **damage, reflect, continue** |
+| Bouncy, limit reached | damage, stop | damage, stop |
+
+- `SurfaceResponse{Absorbent | Reflective}` is set **explicitly on every wall** by `WallFactory`
+  from the wall definition's `"surface"` field (default absorbent). Which walls are which is pure
+  data. Currently `wall` is reflective and `crate` absorbent.
+- No speed or damage loss on bounce.
+- **Future: penetrating abilities (chi).** Chi is a semi-transparent space-warp projectile that
+  passes *through* walls, losing speed and damage as it does. It will add a third projectile trait
+  (e.g. `Penetrate{speedLoss, damageLoss}`) that overrides this table, handled in the same hit
+  loop. Not built yet. See the planned abilities in
+  [`../game-design/game-design.md`](../game-design/game-design.md).
 
 ## 7. Force fields: one system, many features (`systems/ForceFieldSystem`)
 
@@ -142,7 +184,9 @@ grow.
 ## 8. Recipes
 
 - **New projectile weapon:** add an entry to `build_abilities()` (category `Projectile`, params,
-  sprite path) and add it to a loadout slot in `App::init`. That's all.
+  sprite path, `maxRange`, `bounce`/`maxBounces`) and add it to a loadout slot in `App::init`.
+  That's all.
+- **Make a surface reflective/absorbent:** set `"surface"` in its wall definition JSON.
 - **Missile variant:** same as above with different speed/lifetime/sprite. Homing needs a `Homing`
   component + a small steering system (deferred until there are targets).
 - **New modifier:** extend `ModifierKind`, add the `apply_modifier` case (and any new `FireContext`
@@ -157,12 +201,19 @@ grow.
 
 `test_fire` (cadence, cooldown, owner, muzzle velocity), `test_abilities` (modifier fold +
 stacking, multifire spread, quickfire cooldown, semi-auto vs autofire), `test_lifetime`
-(decrement, commit, duplicate despawn), `test_projectile_hit` (sweep damage, lethal double
-despawn, miss, owner filter), `test_beam` (per-second damage, clip at face, full length, lethal),
-`test_forcefield` (radial/directional/falloff, rigid skip, deflector on/off/self skip).
+(decrement, commit, duplicate despawn), `test_range` (expiry, direction independence, a
+ricocheting bullet expires after the same distance as a straight one), `test_projectile_hit`
+(sweep damage, lethal double despawn, miss, owner filter, ricochet keeps speed, absorbent stop,
+non-bouncy absorbed, bounce limit, damage on every bounce), `test_beam` (per-second damage, clip
+at face, full length, lethal, reflection + shared range, absorbent stop, bounce limit with damage
+per hit), `test_forcefield` (radial/directional/falloff, rigid skip, deflector on/off/self skip).
+
+**Debug panel:** the Ship panel's *bounce* section toggles bounce, max bounces (−1…10) and range
+for the blaster and the beam live.
 
 ## 10. Deferred / planned
 
-Deployables (mines, laid lasers), field/warp (chi), shields, homing/heatseeking, cone beam,
+Deployables (mines, laid lasers), field/warp (chi, including wall penetration with
+speed/damage loss), shields, homing/heatseeking, cone beam,
 enemy/AI shooters (fire-intent component), teams/PvP (`Owner.team` reserved), per-draw beam tint,
 spatial-hash-accelerated raycasts.

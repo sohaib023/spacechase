@@ -83,6 +83,14 @@ editor** shared by developers and players, and multiplayer.
   - *Quickfire*: shorter cooldown (optionally faster shots).
   - *Autofire*: hold to keep firing.
 - Shots never hit their own shooter. Bullets and beams destroy crates.
+- **Ricochet:** surfaces are either **reflective** or **absorbent**. Bouncy bullets and beams
+  bounce off reflective surfaces and keep going, dealing full damage on *every* hit with no loss
+  of speed or damage. Absorbent surfaces stop them. Whether something bounces, and how many times
+  (a limit or unlimited), is a property of each ability. Which surfaces reflect is level data.
+  Today the base blaster bounces without limit, the beam bounces twice, plain walls reflect and
+  crates absorb.
+- **Range:** every bullet, beam and ability has a maximum travel distance, counted along its whole
+  path including bounces. The blaster reaches 40 m and the beam 30 m.
 
 ### Force fields
 - One mechanic with many faces: **wind zones**, the ship's **deflector**, and (later) chi-push are
@@ -114,6 +122,10 @@ the ones with a design reason.)
 | Default fire mode | Semi-auto (one shot per press) | Autofire is a modifier you earn/equip, not the baseline. |
 | Beam damage | Per second while touching | A beam is continuous; per-hit damage would depend on frame rate. |
 | Machine gun | A beam, not thousands of bullets | Cheaper and more readable. The cone version (partly blocked by walls) is planned as several thin beams. |
+| Ricochet | Composable per ability: bounce on/off, bounce limit or unlimited | Lets bouncing be mixed into any weapon, the same way as modifiers. |
+| Bounce penalty | None: full speed and damage after every bounce | Keeps ricochet shots strong and readable. Abilities that lose power (chi) are a separate trait. |
+| Surface type | Reflective or absorbent, set per surface in data | Level design decides where shots bounce, without touching weapon code. |
+| Range | A max travel distance on every bullet/beam/ability, separate from bouncing | Bounded shots without coupling range to the ricochet logic. |
 
 ---
 
@@ -129,8 +141,11 @@ From the roadmap ([`../plans/README.md`](../plans/README.md)):
 - **Audio, HUD and menus (M8).**
 - **Networking (M9):** online multiplayer on top of the same simulation.
 - **More abilities:** missiles/rockets, homing/heatseeking (needs enemies to target), deployables
-  (mines, laid lasers), shields, the chi space-warp, a cone machine-gun, movement abilities (boost,
-  blink).
+  (mines, laid lasers), shields, a cone machine-gun, movement abilities (boost, blink).
+- **Chi:** a nearly transparent ability, visible only because it slightly **warps the space** it
+  travels through. It **passes through walls** and other obstacles, but **loses speed and damage**
+  each time it does. Unlike ricochet shots (which never weaken), it's the first ability that
+  degrades. It will be built as its own projectile trait on top of the same hit system.
 
 ## 7. Open design questions
 
@@ -138,7 +153,8 @@ Still to be decided (carry these into the relevant milestone's planning):
 
 1. **Multiplayer shape:** co-op or competitive PvP? How many players? This decides how strict the
    simulation's determinism must be.
-2. **Chi / space-warp:** purely a visual distortion, or does it actually push things?
+2. **Chi / space-warp:** besides passing through walls with speed/damage loss, does its warp
+   also push things?
 3. **Pseudo-3D walls between floors:** in scope for the first version?
 4. **Editor:** in-game panel or separate program? How polished for players?
 5. **Scale targets:** how many bullets and entities on screen at once? This drives performance work.

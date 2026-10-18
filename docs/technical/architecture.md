@@ -125,7 +125,8 @@ game/main ──► core/App   (composition root: owns everything, wires layers 
 | `StaticTag`, `Wall`, `Health` | immovable; wall marker + destructible flag; hit points |
 | `Altitude` | pseudo-3D z, vz, falling, visualScale |
 | `Light` | point/directional light with height, range, color, intensity |
-| `Projectile`, `Lifetime`, `Damage`, `Owner` | bullet tag; auto-despawn timer; per-hit damage; shooter + team |
+| `Projectile`, `Lifetime`, `Range`, `Damage`, `Owner` | bullet tag; optional time limit; travel-distance limit; per-hit damage; shooter + team |
+| `Bounce`, `SurfaceResponse` | projectile ricochets (bounces left, −1 = unlimited); wall is Absorbent or Reflective |
 | `ForceField`, `ForceResponse`, `Deflector` | field source; Rigid/Deflectable; ship deflector ability |
 | `AbilityLoadout` (in `gameplay/Abilities.hpp`), `BeamRequest` | equipped weapon slots; per-step beam intent |
 
@@ -145,10 +146,11 @@ while accumulator >= 1/60:                                ── FIXED-STEP SIMU
     projectile_move_step          bullets: straight-line integrate
     forcefield_step               push Deflectable entities (wind, active deflectors)
     collision_step                ships push-out + slide vs walls (projectiles skipped)
-    projectile_hit_step           swept raycast prev→cur per bullet → damage + queue despawns
-    beam_step                     hitscan beams → damage/sec + beam viz
+    projectile_hit_step           swept raycast prev→cur per bullet → damage, ricochet or despawn
+    beam_step                     hitscan beams (bouncing polyline) → damage/sec + beam viz
     floor_altitude_step           void gravity / recover / death+respawn
     lifetime_step                 expire timed entities
+    range_step                    expire entities that used up their travel range
     commit_deferred               the ONLY place entities are created/destroyed
     accumulator -= 1/60
 alpha = accumulator / (1/60)
@@ -200,7 +202,7 @@ SDL_Quit (reverse order, idempotent).
   second real consumer).
 - Every new `.cpp` must be added to `CMakeLists.txt` (and to the test target if a test uses it).
 - Tests live in `tests/test_*.cpp` (doctest; `test_main.cpp` holds the runner). Each milestone
-  sub-step adds tests for its pure logic. Currently 61 cases. Run
+  sub-step adds tests for its pure logic. Currently 73 cases. Run
   `build/windows-clang-cl/bin/Debug/SpaceChase_tests.exe`.
 - Strict warnings + warnings-as-errors on our targets only (`cmake/warnings.cmake`). The test target
   skips `-Werror` because doctest's header isn't built to that policy.
