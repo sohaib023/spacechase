@@ -49,7 +49,8 @@ quickfire / autofire checkboxes rebuild the fire1 slot's modifier list live (val
 For each `PlayerControlled` ship with `AbilityLoadout + Transform`, for each slot:
 1. `cooldownRemaining = max(0, cooldownRemaining − dt)`. Cooldowns tick in the **fixed step**, so
    cadence is frame-rate independent.
-2. `held` = the slot's action from `InputActions` (fire1 = Space, fire2 = Shift).
+2. `held` = the slot's action from `InputActions` (fire1 = Space / left mouse, fire2 = Shift /
+   right mouse; mouse bindings sidestep keyboard ghosting).
 3. **Beam slot:** copy `held` + beam params into the ship's `BeamRequest`; done.
 4. **Projectile slot:** fold modifiers. Trigger = `held` if autofire, else **rising edge**
    (`held && !wasHeld`, semi-auto default). If triggered and off cooldown, queue `count`
@@ -118,7 +119,9 @@ entities. Rigid ones never move.
 - **Active `Deflector{active, strength, range}` on a ship.** The deflector is a *ship ability*, not
   a level object. `forcefield_step` treats an active deflector as a **radial, linear-falloff
   repulsion source** at the ship. Same code path, no duplicate system. Toggled in the Ship panel
-  (strength/range sliders when active).
+  (strength/range sliders when active). It also pushes the ship's **own** outgoing bullets
+  (intended), which speeds them up since they fly straight out. To see it *bend* bullets, use
+  the panel's **"fire test volley at ship"** button (incoming, ownerless bullets).
 
 **`forcefield_step(registry, dt)`**: for every source × every Deflectable target
 (`Transform + Velocity + ForceResponse`), **skipping self**:

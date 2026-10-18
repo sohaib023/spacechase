@@ -139,11 +139,12 @@ cmake --build --preset windows-clang-cl-debug   # build Debug  (…-release for 
 |---|---|
 | W / ↑, S / ↓ | thrust forward / reverse |
 | A / ←, D / → | turn left / right |
-| Space | fire1: blaster (one shot per press; hold with *autofire*) |
-| Shift | fire2: machine-gun beam |
+| Space / left mouse | fire1: blaster (one shot per press; hold with *autofire*) |
+| Shift / right mouse | fire2: machine-gun beam |
 
 ImGui panels (**Ship**, **Lighting**, **Camera**) expose live tuning: ship stats, deflector ability,
-weapon modifiers, falling control, lights, camera follow model.
+weapon modifiers, falling control, lights, camera follow model. **"fire test volley at ship"**
+sends five ownerless bullets at the ship from 10 m ahead, to watch the deflector bend them.
 
 ---
 
@@ -167,6 +168,7 @@ the outputs.
 | `'vswhere.exe' is not recognized` | Harmless. Prepend the VS Installer dir to PATH (§2) to silence it. |
 | Link fails with **permission denied** on `SpaceChase.exe` | The game is still running and locks the exe. `Get-Process SpaceChase \| Stop-Process -Force`, then rebuild. |
 | D3D12 `E_INVALIDARG` creating a pipeline | Vertex inputs must use `TEXCOORD<n>` semantics where `n` = attribute location (SDL_GPU convention), not `POSITION`. |
+| Space doesn't fire while holding W + A (but does with W + D) | **Keyboard ghosting**: the keyboard hardware can't report that 3-key combo, so the game never sees it. Use the mouse buttons to fire. |
 | Shader edits have no effect | You didn't re-run `tools/compile_shaders.ps1`. The game loads the committed `.dxil`. |
 | Configure fails downloading deps | FetchContent needs internet on first configure. Delete `build/` and retry. |
 

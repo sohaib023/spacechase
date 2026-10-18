@@ -267,6 +267,13 @@ void App::run() {
             if (keys[SDL_SCANCODE_SPACE]) actions.fire1 = true;
             if (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) actions.fire2 = true;
         }
+        // Mouse buttons as alternate fire: immune to keyboard ghosting (many
+        // keyboards can't report e.g. W + A + Space at the same time).
+        if (!ImGui::GetIO().WantCaptureMouse) {
+            const SDL_MouseButtonFlags buttons = SDL_GetMouseState(nullptr, nullptr);
+            if (buttons & SDL_BUTTON_LMASK) actions.fire1 = true;
+            if (buttons & SDL_BUTTON_RMASK) actions.fire2 = true;
+        }
 
         // --- Fixed-step simulation pipeline ---
         while (accumulator >= kFixedDt) {
@@ -327,6 +334,38 @@ void App::run() {
                     if (deflector->active) {
                         ImGui::SliderFloat("deflect strength", &deflector->strength, 0.0f, 200.0f);
                         ImGui::SliderFloat("deflect range", &deflector->range, 1.0f, 15.0f);
+                    }
+                }
+                if (ImGui::Button("fire test volley at ship")) {
+                    // Ownerless bullets from 10 m ahead, flying back at the ship,
+                    // so the deflector has something incoming to repel. They pass
+                    // through the ship (bullets only hit walls for now).
+                    const AbilitySlot* blaster = nullptr;
+                    if (const AbilityLoadout* loadout = reg.try_get<AbilityLoadout>(player)) {
+                        for (const AbilitySlot& slot : loadout->slots) {
+                            if (slot.ability.category == AbilityCategory::Projectile) {
+                                blaster = &slot;
+                                break;
+                            }
+                        }
+                    }
+                    if (blaster != nullptr) {
+                        constexpr float kPi = 3.14159265f;
+                        const glm::vec2 fwd{-std::sin(transform.rotation),
+                                            std::cos(transform.rotation)};
+                        const glm::vec2 side{fwd.y, -fwd.x};
+                        for (int i = -2; i <= 2; ++i) {
+                            ProjectileSpawn spawn;
+                            spawn.params = blaster->ability.projectile;
+                            spawn.params.lifetime = 3.0f;
+                            spawn.albedo = blaster->projAlbedo;
+                            spawn.normal = blaster->projNormal;
+                            spawn.position = transform.position + fwd * 10.0f +
+                                             side * (static_cast<float>(i) * 0.6f);
+                            spawn.velocity = -fwd * (spawn.params.speed * 0.5f);
+                            spawn.rotation = transform.rotation + kPi;
+                            m_deferred.spawns.push_back(spawn); // committed next step
+                        }
                     }
                 }
                 if (AbilityLoadout* loadout = reg.try_get<AbilityLoadout>(player)) {
