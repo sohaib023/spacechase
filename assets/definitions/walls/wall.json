@@ -3,5 +3,6 @@
   "sprite": "sprites/wall.png",
   "normal": "sprites/wall_normal.png",
   "destructible": false,
+  "surface": "reflective",
   "halfExtents": [1.0, 1.0]
 }

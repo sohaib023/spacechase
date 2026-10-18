@@ -29,10 +29,12 @@ TEST_CASE("wall definitions load with destructibility + health") {
     REQUIRE(crate != nullptr);
     CHECK(crate->destructible);
     CHECK(crate->health == doctest::Approx(100.0f));
+    CHECK(crate->surface == SurfaceType::Absorbent);
 
     const WallDef* wall = defs.find_wall("wall");
     REQUIRE(wall != nullptr);
     CHECK_FALSE(wall->destructible);
+    CHECK(wall->surface == SurfaceType::Reflective);
 
     CHECK(defs.find_wall("nonexistent") == nullptr);
 }

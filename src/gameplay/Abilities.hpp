@@ -20,8 +20,11 @@ enum class AbilityCategory { Projectile, Beam };
 
 struct ProjectileParams {
     float speed = 18.0f;          // m/s along facing
-    float damage = 25.0f;         // per hit
-    float lifetime = 2.0f;        // seconds before auto-despawn
+    float damage = 25.0f;         // per hit (every bounce hit deals it again)
+    float maxRange = 40.0f;       // meters of travel before despawn (<= 0 = no limit)
+    float lifetime = 0.0f;        // optional seconds backstop (0 = none)
+    bool bounce = false;          // ricochet off Reflective surfaces?
+    int maxBounces = -1;          // when bouncy: bounce limit (-1 = unlimited)
     float hitboxRadius = 0.15f;   // meters (collision/raycast)
     glm::vec2 spriteSize{0.4f, 0.4f};
     std::string sprite;           // albedo path (relative to assets dir)
@@ -31,7 +34,9 @@ struct ProjectileParams {
 
 struct BeamParams {
     float damage = 40.0f;         // damage PER SECOND (continuous, scaled by dt)
-    float maxDist = 30.0f;        // meters
+    float maxDist = 30.0f;        // range: total path length in meters, across bounces
+    bool bounce = false;          // reflect off Reflective surfaces?
+    int maxBounces = 0;           // when bouncy: bounce limit (-1 = unlimited)
     float width = 0.12f;          // meters (viz)
     glm::vec3 color{1.0f, 0.4f, 0.2f};
 };

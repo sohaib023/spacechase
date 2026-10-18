@@ -19,7 +19,9 @@ std::vector<AbilityDef> build_abilities() {
     blaster.cooldown = 0.18f;
     blaster.projectile.speed = 24.0f;
     blaster.projectile.damage = 25.0f;
-    blaster.projectile.lifetime = 2.0f;
+    blaster.projectile.maxRange = 40.0f;
+    blaster.projectile.bounce = true;   // base bullets ricochet
+    blaster.projectile.maxBounces = -1; // unlimited (range ends them)
     blaster.projectile.hitboxRadius = 0.15f;
     blaster.projectile.spriteSize = {0.5f, 0.5f};
     blaster.projectile.sprite = "sprites/bullet.png";
@@ -32,6 +34,8 @@ std::vector<AbilityDef> build_abilities() {
     machinegun.cooldown = 0.0f;
     machinegun.beam.damage = 40.0f;
     machinegun.beam.maxDist = 30.0f;
+    machinegun.beam.bounce = true;
+    machinegun.beam.maxBounces = 2;
     machinegun.beam.width = 0.12f;
     machinegun.beam.color = {1.0f, 0.4f, 0.2f};
     table.push_back(machinegun);

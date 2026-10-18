@@ -32,6 +32,7 @@
 #include "systems/MovementSystem.hpp"
 #include "systems/ProjectileHitSystem.hpp"
 #include "systems/ProjectileMoveSystem.hpp"
+#include "systems/RangeSystem.hpp"
 #include "systems/RenderCollectSystem.hpp"
 
 #include <SDL3/SDL.h>
@@ -162,7 +163,7 @@ bool App::init() {
         const glm::vec2 halfExtents =
             instance.hasHalfExtents ? instance.halfExtents : wallDef->halfExtents;
         spawn_wall(m_world.registry, wallTexture, wallNormal, instance.center, halfExtents,
-                   wallDef->destructible, wallDef->health);
+                   wallDef->destructible, wallDef->health, wallDef->surface);
     }
 
     m_world.playerShip = spawn_ship(m_world.registry, *playerDef, shipTexture, shipNormal, m_spawn,
@@ -288,7 +289,8 @@ void App::run() {
             projectile_hit_step(m_world.registry, m_deferred);       // swept raycast bullets
             beam_step(m_world.registry, m_beams, m_deferred, kFixedDt); // hitscan machine-gun
             floor_altitude_step(m_world.registry, m_level, m_fallConfig, m_spawn, kFixedDt);
-            lifetime_step(m_world.registry, m_deferred, kFixedDt);   // expire projectiles
+            lifetime_step(m_world.registry, m_deferred, kFixedDt);   // expire timed entities
+            range_step(m_world.registry, m_deferred, kFixedDt);      // expire out-of-range ones
             commit_deferred(m_world.registry, m_deferred);           // flush spawns/despawns
             accumulator -= kFixedDt;
         }

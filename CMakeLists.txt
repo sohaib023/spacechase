@@ -130,6 +130,7 @@ add_executable(SpaceChase
     src/systems/LightingSystem.cpp
     src/systems/ProjectileHitSystem.cpp
     src/systems/ProjectileMoveSystem.cpp
+    src/systems/RangeSystem.cpp
     src/systems/RenderCollectSystem.cpp
     src/gameplay/Abilities.cpp
     src/gameplay/ProjectileFactory.cpp
@@ -193,6 +194,7 @@ add_executable(SpaceChase_tests
     tests/test_projectile_hit.cpp
     tests/test_abilities.cpp
     tests/test_beam.cpp
+    tests/test_range.cpp
     src/data/DefinitionRegistry.cpp   # exercised by test_definitions + test_level
     src/data/LevelLoader.cpp          # exercised by test_level
     src/systems/MovementSystem.cpp    # exercised by test_movement
@@ -207,6 +209,8 @@ add_executable(SpaceChase_tests
     src/gameplay/Spawning.cpp         # exercised by test_fire + test_lifetime
     src/systems/ProjectileHitSystem.cpp # exercised by test_projectile_hit
     src/systems/BeamSystem.cpp        # exercised by test_beam
+    src/systems/RangeSystem.cpp       # exercised by test_range
+    src/systems/ProjectileMoveSystem.cpp # exercised by test_range (bounce + range)
     src/physics/Overlap.cpp           # exercised by test_overlap + collision
     src/physics/SpatialHash.cpp       # exercised by test_spatial_hash + collision
     src/physics/Raycast.cpp           # exercised by test_raycast + projectile_hit

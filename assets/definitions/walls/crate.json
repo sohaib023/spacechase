@@ -3,6 +3,7 @@
   "sprite": "sprites/crate.png",
   "normal": "sprites/crate_normal.png",
   "destructible": true,
+  "surface": "absorbent",
   "health": 100.0,
   "halfExtents": [1.5, 1.5]
 }

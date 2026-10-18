@@ -55,6 +55,9 @@ WallDef parse_wall(const nlohmann::json& j) {
     if (j.contains("halfExtents")) {
         def.halfExtents = read_vec2(j.at("halfExtents"));
     }
+    def.surface = j.value("surface", std::string("absorbent")) == "reflective"
+                      ? SurfaceType::Reflective
+                      : SurfaceType::Absorbent;
     return def;
 }
 

@@ -13,7 +13,8 @@
 namespace sc {
 
 Entity spawn_wall(Registry& registry, TextureHandle texture, TextureHandle normal,
-                  glm::vec2 center, glm::vec2 halfExtents, bool destructible, float health) {
+                  glm::vec2 center, glm::vec2 halfExtents, bool destructible, float health,
+                  SurfaceType surface) {
     const Entity entity = registry.create();
 
     registry.emplace<Transform>(entity, Transform{center, 0.0f});
@@ -35,6 +36,7 @@ Entity spawn_wall(Registry& registry, TextureHandle texture, TextureHandle norma
     // Walls sit on the Wall layer; they don't initiate resolution (mask 0).
     registry.emplace<CollisionLayer>(entity, CollisionLayer{layer::Wall, 0u});
     registry.emplace<ForceResponse>(entity, ForceResponse{ForceResponseType::Rigid});
+    registry.emplace<SurfaceResponse>(entity, SurfaceResponse{surface});
     registry.emplace<StaticTag>(entity);
     registry.emplace<Wall>(entity, Wall{destructible});
     if (destructible) {

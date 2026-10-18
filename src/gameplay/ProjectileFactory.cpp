@@ -1,5 +1,6 @@
 #include "gameplay/ProjectileFactory.hpp"
 
+#include "components/Bounce.hpp"
 #include "components/CollisionLayer.hpp"
 #include "components/Damage.hpp"
 #include "components/ForceResponse.hpp"
@@ -8,6 +9,7 @@
 #include "components/Owner.hpp"
 #include "components/PrevTransform.hpp"
 #include "components/Projectile.hpp"
+#include "components/Range.hpp"
 #include "components/SpriteRender.hpp"
 #include "components/Transform.hpp"
 #include "components/Velocity.hpp"
@@ -22,7 +24,16 @@ Entity spawn_projectile(Registry& registry, const ProjectileSpawn& spawn) {
     registry.emplace<PrevTransform>(entity, PrevTransform{spawn.position, spawn.rotation});
     registry.emplace<Velocity>(entity, Velocity{spawn.velocity});
     registry.emplace<Projectile>(entity);
-    registry.emplace<Lifetime>(entity, Lifetime{spawn.params.lifetime});
+    // Range, lifetime and bounce are independent, optional traits (composition).
+    if (spawn.params.maxRange > 0.0f) {
+        registry.emplace<Range>(entity, Range{spawn.params.maxRange});
+    }
+    if (spawn.params.lifetime > 0.0f) {
+        registry.emplace<Lifetime>(entity, Lifetime{spawn.params.lifetime});
+    }
+    if (spawn.params.bounce) {
+        registry.emplace<Bounce>(entity, Bounce{spawn.params.maxBounces});
+    }
     registry.emplace<Damage>(entity, Damage{spawn.params.damage});
     registry.emplace<Owner>(entity, Owner{spawn.owner, spawn.team});
 

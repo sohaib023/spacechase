@@ -4,6 +4,8 @@
 // destructible (e.g. a crate) carries health and a default size. JSON-free
 // header; parsing lives in DefinitionRegistry.cpp.
 
+#include "components/SurfaceResponse.hpp"
+
 #include <glm/glm.hpp>
 
 #include <string>
@@ -17,6 +19,7 @@ struct WallDef {
     bool destructible = false;
     float health = 0.0f;            // used when destructible
     glm::vec2 halfExtents{1.0f, 1.0f}; // default size (instances may override)
+    SurfaceType surface = SurfaceType::Absorbent; // projectile/beam response
 };
 
 } // namespace sc
