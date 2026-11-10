@@ -62,7 +62,7 @@ after a break). Update it at the end of every work session or milestone.
 
 - **Remote:** `origin` = https://github.com/sohaib023/spacechase, branch `master` (tracking).
   On a new PC: `git clone https://github.com/sohaib023/spacechase.git`, then follow
-  [`getting-started.md`](getting-started.md). Push after each committed sub-step.
+  [`getting-started.md`](getting-started.md). Only push when the user asks.
 - **Working agreements with the user** (also in the root [`CLAUDE.md`](../CLAUDE.md)):
   - Plan each milestone first. Ask the design questions up front, keep plans brief when asked.
     After revising a plan, summarize and **wait for the user to ask** before presenting it for
