@@ -2,7 +2,8 @@
 
 Top-down 2D space shooter in C++20 on SDL3 (GPU API, D3D12/DXIL), EnTT, glm, Dear ImGui,
 nlohmann/json, doctest. Windows + clang-cl. **All documentation is in [`docs/`](docs/README.md)**.
-Read `docs/README.md` first, then `docs/technical/architecture.md`.
+Start with **`docs/status.md`** (current state + next steps), then `docs/README.md` and
+`docs/technical/architecture.md`. Update `docs/status.md` at the end of every session.
 
 ## Build & test (PowerShell)
 
@@ -26,6 +27,7 @@ cmake --build --preset windows-clang-cl-debug
 - **Plan per milestone** (`docs/plans/`). After revising a plan, summarize and **wait for the user to
   explicitly ask** before presenting it for approval (don't rush ExitPlanMode).
 - **Build in sub-steps; commit after each one** that compiles and passes tests.
+- The user playtests and reports back. Unit-tested is not "verified" until they confirm it.
 - **Commit messages: plain ASCII, no double quotes, no em-dashes** (they break the scripted
   PowerShell git command).
 - Keep `docs/technical/` in sync with code changes; new plans go to `docs/plans/`; design decisions
