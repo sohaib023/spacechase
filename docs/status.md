@@ -60,9 +60,9 @@ after a break). Update it at the end of every work session or milestone.
 
 ## 4. Things that aren't in the code but matter
 
-- **The repo has no git remote configured.** All history is local to the original machine. To
-  continue on another PC, add a remote and push first (`git remote add origin <url>`,
-  `git push -u origin master`).
+- **Remote:** `origin` = https://github.com/sohaib023/spacechase, branch `master` (tracking).
+  On a new PC: `git clone https://github.com/sohaib023/spacechase.git`, then follow
+  [`getting-started.md`](getting-started.md). Push after each committed sub-step.
 - **Working agreements with the user** (also in the root [`CLAUDE.md`](../CLAUDE.md)):
   - Plan each milestone first. Ask the design questions up front, keep plans brief when asked.
     After revising a plan, summarize and **wait for the user to ask** before presenting it for
