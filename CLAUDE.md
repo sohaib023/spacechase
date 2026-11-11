@@ -1,11 +1,22 @@
 # Space Chase — agent notes
 
-Top-down 2D space shooter in C++20 on SDL3 (GPU API, D3D12/DXIL), EnTT, glm, Dear ImGui,
-nlohmann/json, doctest. Windows + clang-cl. **All documentation is in [`docs/`](docs/README.md)**.
-Start with **`docs/status.md`** (current state + next steps), then `docs/README.md` and
-`docs/technical/architecture.md`. Update `docs/status.md` at the end of every session.
+Top-down 2D space shooter in C++20 on SDL3 (GPU API: D3D12/DXIL on Windows, Vulkan/SPIR-V on
+Linux), EnTT, glm, Dear ImGui, nlohmann/json, doctest. Windows + clang-cl, Ubuntu + clang 19.
+**All documentation is in [`docs/`](docs/README.md)**. Start with **`docs/status.md`** (current
+state + next steps), then `docs/README.md` and `docs/technical/architecture.md`. Update
+`docs/status.md` at the end of every session.
 
-## Build & test (PowerShell)
+## Build & test: Ubuntu
+
+One-time: `tools/setup_ubuntu.sh` (toolchain into `.tools/`, nothing system-wide).
+
+```bash
+cmake --preset linux-clang
+cmake --build --preset linux-clang-debug
+./build/linux-clang/bin/Debug/SpaceChase_tests
+```
+
+## Build & test: Windows (PowerShell)
 
 Tools are NOT on a plain PowerShell PATH. Load the VS dev environment in the same command:
 
@@ -20,7 +31,8 @@ cmake --build --preset windows-clang-cl-debug
 
 - Kill a running game first or linking fails: `Get-Process SpaceChase -ErrorAction SilentlyContinue | Stop-Process -Force`.
 - Warnings are errors. New `.cpp` files must be added to `CMakeLists.txt` (and to `SpaceChase_tests` if tested).
-- After editing `assets/shaders/*.hlsl`, run `tools/compile_shaders.ps1` and commit the `.dxil`.
+- After editing `assets/shaders/*.hlsl`, run `cmake -P tools/compile_shaders.cmake` and commit the
+  `.dxil` + `.spv` (the Windows SDK dxc can't emit SPIR-V, see `docs/getting-started.md` §6).
 
 ## Working agreements
 

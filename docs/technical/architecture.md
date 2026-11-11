@@ -43,7 +43,7 @@ do this?".
 CMakeLists.txt / CMakePresets.json   build (single exe + test exe; see §8)
 cmake/            warnings.cmake (strict flags), imgui.cmake (builds ImGui from FetchContent)
 assets/
-  shaders/        *.hlsl sources + compiled/*.dxil (committed; tools/compile_shaders.ps1)
+  shaders/        *.hlsl sources + compiled/*.dxil|*.spv (committed; tools/compile_shaders.cmake)
   sprites/        PNG albedo + *_normal.png normal maps
   definitions/    ships/*.json, walls/*.json      (content as data)
   levels/         test_m3.json                    (the current test level)
@@ -175,7 +175,7 @@ Rules baked into this order:
   since M1.
 
 ### Startup / shutdown
-`init`: SDL_Init → window → GPU device (DXIL only) → claim window → ImGui (SDL3 + SDL_GPU backends)
+`init`: SDL_Init → window → GPU device (offers DXIL + SPIR-V; D3D12 on Windows, Vulkan on Linux) → claim window → ImGui (SDL3 + SDL_GPU backends)
 → Renderer → load ship defs → textures → wall defs + level → spawn walls, player (+ loadout),
 lights, force fields, debug light → camera. Each step logs and bails out on failure.
 `shutdown`: wait for GPU idle → textures → renderer → ImGui → release window → device → window →

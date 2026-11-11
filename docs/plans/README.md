@@ -21,12 +21,13 @@ Build order from the groundwork brief (§9), with status:
 | M7 | Level format + editor (ImGui), sharing the registries | planned | *to plan* |
 | M8 | Audio, HUD/UI | planned | *to plan* |
 | M9 | Networking (ENet) on the multiplayer-shaped sim | planned | *to plan* |
-| — | SDL_shadercross build step (cross-platform shaders) | deferred, own milestone, needed before Linux/macOS | *to plan* |
+| — | Linux port: Ubuntu setup script, SPIR-V shaders, cross-platform tools + debugging | ✅ done | [linux-port.md](linux-port.md) |
+| — | SDL_shadercross build step (shaders at build time, + MSL) | deferred, needed before macOS | *to plan* |
 
 ## Carried-over backlog (decided-but-deferred)
 
-- **SDL_shadercross**: replace `tools/compile_shaders.ps1` with a build step emitting
-  DXIL/SPIR-V/MSL.
+- **SDL_shadercross**: replace the hand-run `tools/compile_shaders.cmake` with a build step that
+  also emits MSL (macOS).
 - **Hot-reload** of definitions and textures.
 - **Static-library layer split** (core/render/ecs/data) once the editor/net give a second consumer.
 - Abilities: deployables, chi/warp (penetrates walls, loses speed and damage), shield, homing

@@ -3,7 +3,7 @@
 **The "you are here" page.** Read this first when picking the project up (new agent, new PC,
 after a break). Update it at the end of every work session or milestone.
 
-*Last updated: 2026-11-10 · last commit at time of writing: `3403fab` (M5b.4) · branch `master`*
+*Last updated: 2026-11-11 · Linux port done (see [`plans/linux-port.md`](plans/linux-port.md)) · branch `master`*
 
 ---
 
@@ -12,8 +12,10 @@ after a break). Update it at the end of every work session or milestone.
 - **Milestones M0–M5 and M5b are done** (see [`plans/README.md`](plans/README.md)). The game is
   a flyable, lit arena with walls, breakable crates, voids you can fall into, wind zones, a
   deflector ability, a ricocheting blaster with modifiers, and a bouncing machine-gun beam.
-- **Build:** clean under clang-cl with warnings-as-errors. **73/73 unit tests pass.**
-- **Platform:** Windows only (DXIL/D3D12). Cross-platform waits on the SDL_shadercross milestone.
+- **Build:** clean with warnings-as-errors under clang-cl (Windows) and clang 19 (Ubuntu 24.04).
+  **73/73 unit tests pass** on Linux.
+- **Platform:** Windows (D3D12/DXIL) and Ubuntu (Vulkan/SPIR-V). Ubuntu setup is one script,
+  `tools/setup_ubuntu.sh`. macOS waits on MSL (SDL_shadercross milestone).
 
 ### Verification status
 
@@ -24,9 +26,15 @@ after a break). Update it at the end of every work session or milestone.
 | Deflector bending *incoming* bullets | ✅ | ❌ not yet. Use the **"fire test volley at ship"** button in the Ship panel |
 | Mouse fire bindings (keyboard-ghosting workaround) | — | ❌ not yet |
 | Ricochet, reflective/absorbent surfaces, range, bouncing beam (M5b) | ✅ | ❌ not yet. The game launches cleanly; feel unconfirmed |
+| Linux/Vulkan rendering (SPIR-V shaders) | — | ❌ not yet. Launches and initializes on Vulkan (Intel Arc under Wayland); visuals unconfirmed |
+| Windows after the Linux port (shader-format selection, `compile_shaders.cmake`, `normal_maps` target) | — | ❌ not yet rebuilt on Windows |
 
 ## 2. Immediate next steps
 
+0. **Linux port follow-ups:** play on Ubuntu and confirm rendering/lighting match Windows. Check
+   whether the default X11 path gets the real GPU from a normal terminal (inside the agent sandbox
+   it fell back to llvmpipe; `SDL_VIDEO_DRIVER=wayland` uses the Intel GPU). Rebuild on Windows
+   once to confirm nothing regressed.
 1. **Playtest the unverified rows above** and fix whatever comes up. In the Ship panel:
    - *bounce* section: toggle bounce / max bounces / range for blaster and beam,
    - *deflector ability* + *fire test volley at ship*.
@@ -73,8 +81,11 @@ after a break). Update it at the end of every work session or milestone.
     `ForceResponse`, `SurfaceResponse`) and keep separate concepts separate (e.g. range vs bounce).
   - All documentation lives in `docs/`. Keep `technical/` in sync with code, log design decisions
     in `game-design/game-design.md`, and update **this file** at the end of each session.
-- **Environment quirks:** see [`getting-started.md`](getting-started.md) §2 and §6 (dev shell
-  PATH, `vswhere` noise, kill the running exe before relinking, keyboard ghosting).
+- **Environment quirks:** see [`getting-started.md`](getting-started.md) §2, §5 and §7 (dev shell
+  PATH, `vswhere` noise, kill the running exe before relinking, keyboard ghosting, Linux X11 vs
+  Wayland).
+- **Committed DXIL** was last built by the Windows SDK dxc. Running `compile_shaders.cmake` on
+  Linux rewrites it with a newer dxc; that output hasn't been tested on Windows yet.
 
 ## 5. Quick orientation
 

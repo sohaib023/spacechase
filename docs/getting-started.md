@@ -1,15 +1,17 @@
 # Getting Started
 
-How to take a fresh Windows machine to building, running, testing and debugging Space Chase.
-Read this first on a new PC (or as a new agent) before touching the code.
+How to take a fresh Windows or Ubuntu machine to building, running, testing and debugging Space
+Chase. Read this first on a new PC (or as a new agent) before touching the code.
 
-> **Platform status:** Windows is the only working target today. The renderer requests **DXIL**
-> shaders only (D3D12 backend), so Linux/macOS presets exist as stubs but will not run until the
-> SDL_shadercross milestone emits SPIR-V/MSL. See [`technical/rendering.md`](technical/rendering.md).
+> **Platform status:** Windows (D3D12, DXIL shaders) and Ubuntu (Vulkan, SPIR-V shaders) both
+> work. macOS is a stub preset until shaders are also built as MSL. See
+> [`technical/rendering.md`](technical/rendering.md).
+>
+> **On Ubuntu, skip to [§5](#5-ubuntu).** §1 to §4 are the Windows setup.
 
 ---
 
-## 1. What you need
+## 1. What you need (Windows)
 
 | # | Component | Why | Provided by |
 |---|---|---|---|
@@ -102,7 +104,7 @@ What the committed `.vscode/` files do:
 | File | Purpose |
 |---|---|
 | `settings.json` | presets always; copies the active preset's `compile_commands.json` to `build/` so clangd finds it; clangd args (`--background-index --clang-tidy`); format-on-save with clangd (uses `.clang-format`) |
-| `launch.json` | two `cppvsdbg` launch configs: **Debug SpaceChase (clang-cl)** (builds first) and **(MSVC)** |
+| `launch.json` | Windows: two `cppvsdbg` configs, **Debug SpaceChase (clang-cl)** (builds first) and **(MSVC)**. Linux: two `cppdbg`/gdb configs (§5). |
 | `extensions.json` | the three recommended extensions |
 
 **Debug:** set a breakpoint (e.g. in `App::run`), press **F5** with "Debug SpaceChase (clang-cl)".
@@ -121,9 +123,9 @@ cmake --build --preset windows-clang-cl-debug   # build Debug  (…-release for 
 ```
 
 - **Presets** (`CMakePresets.json`, generator *Ninja Multi-Config*): `windows-clang-cl` (default),
-  `windows-msvc` (fallback), `linux-clang` / `macos-clang` (stubs). Build presets add `-debug` /
-  `-release`. Test presets: `windows-clang-cl`, `windows-msvc`.
-- **Output** (exe + `SDL3.dll` + PDBs) lands in `build/<preset>/bin/<Config>/`. `SDL3.dll` is copied
+  `windows-msvc` (fallback), `linux-clang` (§5), `macos-clang` (stub). Build presets add `-debug` /
+  `-release`. Test presets: `windows-clang-cl`, `windows-msvc`, `linux-clang`.
+- **Output** (exe + `SDL3.dll` + PDBs on Windows) lands in `build/<preset>/bin/<Config>/`. `SDL3.dll` is copied
   next to the exe by a post-build step.
 - **Assets** load straight from the source tree via the compile-time `SC_ASSET_DIR` define, so you
   can edit a JSON file or sprite and just relaunch. No rebuild, no copy step.
@@ -148,19 +150,62 @@ sends five ownerless bullets at the ship from 10 m ahead, to watch the deflector
 
 ---
 
-## 5. Hand-run tools (`tools/`)
+## 5. Ubuntu
 
-These are **not** part of the CMake build. Run them by hand when their inputs change, and commit
-the outputs.
+Tested on Ubuntu 24.04. One script sets everything up:
 
-| Script | When | Output |
-|---|---|---|
-| `tools/compile_shaders.ps1` | after editing any `assets/shaders/*.hlsl` | `assets/shaders/compiled/*.dxil` (uses the Windows SDK `dxc`) |
-| `tools/gen_normals.ps1` | after changing a sprite that has a normal map | `assets/sprites/*_normal.png` |
+```bash
+tools/setup_ubuntu.sh               # checks apt packages, downloads the toolchain into .tools/
+tools/setup_ubuntu.sh --install-apt # same, but also sudo apt-get installs missing packages
+```
+
+- **Nothing is installed system-wide** unless you pass `--install-apt`. Without it the script
+  only lists missing packages (SDL3's X11/Wayland/audio `-dev` headers, gdb, Vulkan driver) and
+  stops.
+- It downloads pinned, checksum-verified **LLVM 19.1.7** (clang, lld, clangd, clang-format,
+  clang-tidy), **ninja** and **dxc** into `.tools/` (gitignored, ~0.5 to 1 GB). The LLVM archive is
+  ~1.7 GB and is deleted after extraction. Re-running skips anything already at the pinned version.
+  To bump a version, edit the version/URL/sha256 at the top of the script.
+- The `linux-clang` preset points at `.tools/` directly, so no PATH changes are needed, in the
+  terminal or in VS Code.
+- SDL3 is built without XTest (`SDL_X11_XTEST OFF`, only used for global mouse warping), so
+  `libxtst-dev` isn't needed.
+
+Build, run, test:
+
+```bash
+cmake --preset linux-clang                 # configure (first run downloads all deps)
+cmake --build --preset linux-clang-debug   # build Debug (...-release for Release)
+./build/linux-clang/bin/Debug/SpaceChase        # run (Vulkan backend)
+ctest --preset linux-clang                      # unit tests (or run SpaceChase_tests directly)
+```
+
+**VS Code:** the same three extensions as §3. In the CMake Tools status bar pick the `linux-clang`
+configure preset. Debug with **Debug SpaceChase (Linux, gdb)** or **Debug tests (Linux, gdb)**
+(`cppdbg` + the system gdb). VS Code can't switch the debugger `type` per OS within one
+configuration, so `launch.json` has separate Windows and Linux entries; pick the one for your OS.
 
 ---
 
-## 6. Troubleshooting
+## 6. Hand-run tools (`tools/`)
+
+These are **not** part of the normal build. Run them by hand when their inputs change, and commit
+the outputs. Both work on Windows and Linux.
+
+| Command | When | Output |
+|---|---|---|
+| `cmake -P tools/compile_shaders.cmake` | after editing any `assets/shaders/*.hlsl` | `assets/shaders/compiled/*.dxil` + `*.spv` |
+| `cmake --build --preset <preset> --target normal_maps` | after changing a sprite that has a normal map | `assets/sprites/*_normal.png` |
+
+`compile_shaders.cmake` looks for `dxc` in `.tools/dxc/bin`, then PATH, then the Windows SDK
+(override with `-DDXC=<path>`). The **Windows SDK `dxc` can't emit SPIR-V**: it compiles the DXIL
+and then fails on SPIR-V. On Windows, put a
+[GitHub release dxc](https://github.com/microsoft/DirectXShaderCompiler/releases) in
+`.tools/dxc/bin` to build both.
+
+---
+
+## 7. Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
@@ -169,7 +214,10 @@ the outputs.
 | Link fails with **permission denied** on `SpaceChase.exe` | The game is still running and locks the exe. `Get-Process SpaceChase \| Stop-Process -Force`, then rebuild. |
 | D3D12 `E_INVALIDARG` creating a pipeline | Vertex inputs must use `TEXCOORD<n>` semantics where `n` = attribute location (SDL_GPU convention), not `POSITION`. |
 | Space doesn't fire while holding W + A (but does with W + D) | **Keyboard ghosting**: the keyboard hardware can't report that 3-key combo, so the game never sees it. Use the mouse buttons to fire. |
-| Shader edits have no effect | You didn't re-run `tools/compile_shaders.ps1`. The game loads the committed `.dxil`. |
+| Shader edits have no effect | You didn't re-run `cmake -P tools/compile_shaders.cmake`. The game loads the committed `.dxil` / `.spv`. |
+| Linux: log shows `Vulkan Device: llvmpipe` / `No DRI3 support detected` | Vulkan fell back to software rendering on X11 (SDL 3.4 picks X11/XWayland on GNOME 46). Force Wayland: `SDL_VIDEO_DRIVER=wayland`. Seen inside Claude Code's command sandbox; check from a normal terminal. |
+| Linux: see SDL's GPU/driver log lines | `SDL_LOGGING='*=info' ./build/linux-clang/bin/Debug/SpaceChase` |
+| Linux: `linux-clang` configure can't find the compiler | Run `tools/setup_ubuntu.sh` first; the preset uses `.tools/llvm` and `.tools/ninja`. |
 | Configure fails downloading deps | FetchContent needs internet on first configure. Delete `build/` and retry. |
 
 PowerShell scripting gotchas (when writing asset/tool scripts):

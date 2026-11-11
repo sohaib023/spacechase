@@ -115,9 +115,9 @@ layers, portals, spawn points, entity instances in general).
 
 ## 4. Adding content: recipes
 
-- **New ship type:** add `definitions/ships/<id>.json` + sprite (+ optional normal via
-  `tools/gen_normals.ps1`). Spawn it with `find_ship("<id>")` + `spawn_ship`. No code change to the
-  loader.
+- **New ship type:** add `definitions/ships/<id>.json` + sprite (+ optional normal: add it to
+  `tools/gen_normals.cpp` and build the `normal_maps` target). Spawn it with `find_ship("<id>")` +
+  `spawn_ship`. No code change to the loader.
 - **New wall/obstacle type:** add `definitions/walls/<id>.json` + sprite; reference it from a level's
   `walls` by `def`.
 - **New level:** copy `test_m3.json`, edit, and point `App::init` at it (until level selection exists).

@@ -8,14 +8,19 @@ Code: `src/render/`, `src/resources/`, `src/systems/RenderCollectSystem.*`,
 
 ## 1. GPU backend
 
-- SDL3 **GPU API**. `App::init` creates the device requesting **`SDL_GPU_SHADERFORMAT_DXIL` only**,
-  which deterministically selects **D3D12** and matches our committed shader blobs. Debug mode is on.
-- **Shaders are HLSL, hand-compiled to DXIL** by `tools/compile_shaders.ps1` (Windows SDK `dxc`,
-  profiles `vs_6_0` / `ps_6_0`). The `.dxil` files in `assets/shaders/compiled/` are committed, so
-  **after editing any `.hlsl` you must re-run the script**.
-- **SDL_shadercross is deliberately deferred** to its own milestone. The HLSL is written to SDL_GPU
-  conventions so shadercross can later consume it unchanged and emit SPIR-V (Vulkan) + MSL (Metal).
-  Until then the game runs on Windows only.
+- SDL3 **GPU API**. `App::init` creates the device offering **DXIL + SPIR-V**
+  (`render/ShaderFormat.hpp`). SDL tries D3D12 before Vulkan, so Windows gets **D3D12** and Linux
+  gets **Vulkan**; the renderer loads the `.dxil` or `.spv` blobs matching the chosen backend.
+  Debug mode is on.
+- **Shaders are HLSL, hand-compiled to DXIL and SPIR-V** by `cmake -P tools/compile_shaders.cmake`
+  (`dxc`, profiles `vs_6_0` / `ps_6_0`). The `.dxil` / `.spv` files in `assets/shaders/compiled/`
+  are committed, so **after editing any `.hlsl` you must re-run the script**. The Windows SDK `dxc`
+  has no SPIR-V support; see [`../getting-started.md`](../getting-started.md) §6.
+- dxc's SPIR-V output maps `register(xN, spaceM)` to set M / binding N, which is exactly SDL_GPU's
+  Vulkan layout. A separate `Texture2D` + `SamplerState` at the same binding is valid against SDL's
+  combined image-sampler descriptors.
+- **SDL_shadercross is still deferred** (would make shader compilation a build step and add MSL
+  for macOS). The HLSL follows SDL_GPU conventions so it can consume it unchanged.
 
 ### SDL_GPU binding conventions (must match exactly)
 
@@ -24,7 +29,7 @@ Code: `src/render/`, `src/resources/`, `src/systems/RenderCollectSystem.*`,
 | Vertex-stage uniform buffers | `b<n>, space1` |
 | Fragment textures / samplers | `t<n>, space2` / `s<n>, space2` |
 | Fragment uniform buffers | `b<n>, space3` |
-| Vertex **inputs** | semantic **`TEXCOORD<n>`**, where `n` = vertex attribute location |
+| Vertex **inputs** | semantic **`TEXCOORD<n>`**, where `n` = vertex attribute location. **Declare them in order of `n`**: SPIR-V assigns locations by declaration order. |
 
 Using `POSITION` for a vertex input makes D3D12 fail pipeline creation with `E_INVALIDARG`. This was
 a real M1 bug.
@@ -109,9 +114,9 @@ Per fragment:
 
 - Each sprite may have `<name>_normal.png` (same size + frame layout as the albedo), referenced
   from its definition JSON (`"normal"`). Missing → flat fallback.
-- Generated procedurally by `tools/gen_normals.ps1` from the albedo (height = alpha × (0.5 + 0.5 ×
+- Generated procedurally by `tools/gen_normals.cpp` (`normal_maps` CMake target) from the albedo (height = alpha × (0.5 + 0.5 ×
   luminance), central-difference gradient). **Green-channel convention:** DirectX-style, image rows
-  go down = world −Y. If lighting ever looks inverted, flip the sign in that one script.
+  go down = world −Y. If lighting ever looks inverted, flip the sign in that one tool.
 
 ## 5. Render-side systems
 
@@ -158,5 +163,5 @@ Per fragment:
 
 ## 9. Planned
 
-SDL_shadercross build step (all platforms) · parallax / multi-floor layers (M6) · per-draw tint ·
+SDL_shadercross build step (+ MSL for macOS) · parallax / multi-floor layers (M6) · per-draw tint ·
 atlasing if draw-run counts grow · shadows/deferred are out of scope for now.
