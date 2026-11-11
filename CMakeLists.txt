@@ -141,15 +141,15 @@ add_executable(SpaceChase
     src/gameplay/WallFactory.cpp
 )
 
-# The stb_image implementation TU is vendored third-party code; compile it with
-# warnings off so its internal warnings don't trip our -Werror policy.
+# The stb implementation TUs are vendored third-party code; compile them with
+# warnings off so their internal warnings don't trip our -Werror policy.
 if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    set_source_files_properties(src/resources/stb_image_impl.cpp
-        PROPERTIES COMPILE_OPTIONS "/w")
+    set(sc_no_warnings "/w")
 else()
-    set_source_files_properties(src/resources/stb_image_impl.cpp
-        PROPERTIES COMPILE_OPTIONS "-w")
+    set(sc_no_warnings "-w")
 endif()
+set_source_files_properties(src/resources/stb_image_impl.cpp tools/stb_image_write_impl.cpp
+    PROPERTIES COMPILE_OPTIONS "${sc_no_warnings}")
 
 target_include_directories(SpaceChase PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(SpaceChase PRIVATE
@@ -172,6 +172,19 @@ if(WIN32)
             $<TARGET_FILE_DIR:SpaceChase>
         VERBATIM)
 endif()
+
+# ---------------------------------------------------------------------------
+# Hand-run asset tool (not built by default): regenerates sprite normal maps.
+#   cmake --build --preset <preset> --target normal_maps
+# ---------------------------------------------------------------------------
+add_executable(gen_normals EXCLUDE_FROM_ALL
+    tools/gen_normals.cpp
+    src/resources/stb_image_impl.cpp
+    tools/stb_image_write_impl.cpp)
+target_link_libraries(gen_normals PRIVATE stb)
+target_compile_definitions(gen_normals PRIVATE SC_ASSET_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets")
+spacechase_set_warnings(gen_normals)
+add_custom_target(normal_maps COMMAND gen_normals VERBATIM)
 
 # ---------------------------------------------------------------------------
 # Unit tests (doctest). Single-target policy holds: the test binary compiles the
