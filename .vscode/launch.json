@@ -22,6 +22,34 @@
       "args": [],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal"
+    },
+    {
+      // Linux: gdb through the Microsoft C/C++ extension. VS Code can't switch the
+      // debugger "type" per OS, so each platform has its own entries here.
+      "name": "Debug SpaceChase (Linux, gdb)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/linux-clang/bin/Debug/SpaceChase",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "setupCommands": [
+        { "description": "Pretty-print STL types", "text": "-enable-pretty-printing", "ignoreFailures": true }
+      ],
+      "preLaunchTask": "CMake: build"
+    },
+    {
+      "name": "Debug tests (Linux, gdb)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/linux-clang/bin/Debug/SpaceChase_tests",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "setupCommands": [
+        { "description": "Pretty-print STL types", "text": "-enable-pretty-printing", "ignoreFailures": true }
+      ],
+      "preLaunchTask": "CMake: build"
     }
   ]
 }
