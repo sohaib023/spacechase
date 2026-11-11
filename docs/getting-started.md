@@ -215,7 +215,8 @@ and then fails on SPIR-V. On Windows, put a
 | D3D12 `E_INVALIDARG` creating a pipeline | Vertex inputs must use `TEXCOORD<n>` semantics where `n` = attribute location (SDL_GPU convention), not `POSITION`. |
 | Space doesn't fire while holding W + A (but does with W + D) | **Keyboard ghosting**: the keyboard hardware can't report that 3-key combo, so the game never sees it. Use the mouse buttons to fire. |
 | Shader edits have no effect | You didn't re-run `cmake -P tools/compile_shaders.cmake`. The game loads the committed `.dxil` / `.spv`. |
-| Linux: log shows `Vulkan Device: llvmpipe` / `No DRI3 support detected` | Vulkan fell back to software rendering on X11 (SDL 3.4 picks X11/XWayland on GNOME 46). Force Wayland: `SDL_VIDEO_DRIVER=wayland`. Seen inside Claude Code's command sandbox; check from a normal terminal. |
+| Linux: log shows `Vulkan Device: llvmpipe` / `No DRI3 support detected` | Software rendering: XWayland has no GPU acceleration. Ubuntu 24.04's `xwayland ...ubuntu0.7` breaks glamor with Mesa 25.2 (journal: `Failed to initialize glamor, falling back to sw`). Fix: `sudo apt install --only-upgrade xwayland` (>= `2:23.2.6-1ubuntu0.8`, LP #2126037), then log out and in. Not an `xorg.conf` setting. |
+| Linux: no window title bar with `SDL_VIDEO_DRIVER=wayland` | VS Code exports `GDK_BACKEND=x11` to programs it launches, so libdecor's GTK plugin fails. Unset it, or stay on the default X11. |
 | Linux: see SDL's GPU/driver log lines | `SDL_LOGGING='*=info' ./build/linux-clang/bin/Debug/SpaceChase` |
 | Linux: `linux-clang` configure can't find the compiler | Run `tools/setup_ubuntu.sh` first; the preset uses `.tools/llvm` and `.tools/ninja`. |
 | Configure fails downloading deps | FetchContent needs internet on first configure. Delete `build/` and retry. |

@@ -26,15 +26,14 @@ after a break). Update it at the end of every work session or milestone.
 | Deflector bending *incoming* bullets | ✅ | ❌ not yet. Use the **"fire test volley at ship"** button in the Ship panel |
 | Mouse fire bindings (keyboard-ghosting workaround) | — | ❌ not yet |
 | Ricochet, reflective/absorbent surfaces, range, bouncing beam (M5b) | ✅ | ❌ not yet. The game launches cleanly; feel unconfirmed |
-| Linux/Vulkan rendering (SPIR-V shaders) | — | ❌ not yet. Launches and initializes on Vulkan (Intel Arc under Wayland); visuals unconfirmed |
+| Linux/Vulkan rendering (SPIR-V shaders) | — | ❌ not yet. Launches on Vulkan; GPU path needs the fixed `xwayland` + a re-login (see below) |
 | Windows after the Linux port (shader-format selection, `compile_shaders.cmake`, `normal_maps` target) | — | ❌ not yet rebuilt on Windows |
 
 ## 2. Immediate next steps
 
-0. **Linux port follow-ups:** play on Ubuntu and confirm rendering/lighting match Windows. Check
-   whether the default X11 path gets the real GPU from a normal terminal (inside the agent sandbox
-   it fell back to llvmpipe; `SDL_VIDEO_DRIVER=wayland` uses the Intel GPU). Rebuild on Windows
-   once to confirm nothing regressed.
+0. **Linux port follow-ups:** `xwayland` was upgraded to the glamor fix; after the next re-login,
+   confirm the log shows `Vulkan Device: Intel(R) Arc(tm) Graphics` (not llvmpipe) and that
+   rendering/lighting match Windows. Rebuild on Windows once to confirm nothing regressed.
 1. **Playtest the unverified rows above** and fix whatever comes up. In the Ship panel:
    - *bounce* section: toggle bounce / max bounces / range for blaster and beam,
    - *deflector ability* + *fire test volley at ship*.
