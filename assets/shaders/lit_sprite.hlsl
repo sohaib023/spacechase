@@ -1,7 +1,7 @@
 // Normal-mapped 2.5D sprite lighting (M4). Authored once in HLSL, hand-compiled
-// to DXIL for now (see tools/compile_shaders.ps1); feeds SDL_shadercross later
-// unchanged. SDL_GPU register conventions: VS uniforms space1; FS textures/
-// samplers space2; FS uniforms space3. Vertex inputs are TEXCOORD<n> == location.
+// to DXIL + SPIR-V (see tools/compile_shaders.cmake). SDL_GPU register
+// conventions: VS uniforms space1; FS textures/samplers space2; FS uniforms
+// space3. Vertex inputs are TEXCOORD<n> == location, declared in order of n.
 //
 // Lighting is done in WORLD space (meters). The sprite plane is z=0; lights sit
 // at a height z above it (the key knob). The sampled tangent-space normal is

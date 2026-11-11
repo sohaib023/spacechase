@@ -1,6 +1,7 @@
 #include "render/Renderer.hpp"
 
 #include "core/Log.hpp"
+#include "render/ShaderFormat.hpp"
 #include "resources/TextureRegistry.hpp"
 
 #include <SDL3/SDL.h>
@@ -14,9 +15,9 @@ namespace sc {
 
 namespace {
 
-SDL_GPUShader* load_shader(SDL_GPUDevice* gpu, const std::string& path,
-                           SDL_GPUShaderStage stage, const char* entrypoint,
-                           Uint32 numSamplers, Uint32 numUniformBuffers) {
+SDL_GPUShader* load_shader(SDL_GPUDevice* gpu, const std::string& path, SDL_GPUShaderFormat format,
+                           SDL_GPUShaderStage stage, const char* entrypoint, Uint32 numSamplers,
+                           Uint32 numUniformBuffers) {
     size_t codeSize = 0;
     void* code = SDL_LoadFile(path.c_str(), &codeSize);
     if (code == nullptr) {
@@ -28,7 +29,7 @@ SDL_GPUShader* load_shader(SDL_GPUDevice* gpu, const std::string& path,
     info.code = static_cast<const Uint8*>(code);
     info.code_size = codeSize;
     info.entrypoint = entrypoint;
-    info.format = SDL_GPU_SHADERFORMAT_DXIL;
+    info.format = format;
     info.stage = stage;
     info.num_samplers = numSamplers;
     info.num_uniform_buffers = numUniformBuffers;
@@ -48,12 +49,13 @@ bool Renderer::init(SDL_GPUDevice* gpu, SDL_GPUTextureFormat colorFormat) {
     m_vertices.reserve(kMaxVertices);
 
     const std::string shaderDir = std::string(SC_ASSET_DIR) + "/shaders/compiled/";
+    const ShaderBlobFormat blob = shader_blob_format(gpu);
     // Vertex: 1 uniform buffer (camera). Fragment: 2 samplers (albedo + normal),
     // 1 uniform buffer (lights).
-    SDL_GPUShader* vs = load_shader(gpu, shaderDir + "lit_sprite.vert.dxil",
-                                    SDL_GPU_SHADERSTAGE_VERTEX, "vs_main", 0, 1);
-    SDL_GPUShader* ps = load_shader(gpu, shaderDir + "lit_sprite.frag.dxil",
-                                    SDL_GPU_SHADERSTAGE_FRAGMENT, "ps_main", 2, 1);
+    SDL_GPUShader* vs = load_shader(gpu, shaderDir + "lit_sprite.vert" + blob.extension,
+                                    blob.format, SDL_GPU_SHADERSTAGE_VERTEX, "vs_main", 0, 1);
+    SDL_GPUShader* ps = load_shader(gpu, shaderDir + "lit_sprite.frag" + blob.extension,
+                                    blob.format, SDL_GPU_SHADERSTAGE_FRAGMENT, "ps_main", 2, 1);
     if (vs == nullptr || ps == nullptr) {
         if (vs) SDL_ReleaseGPUShader(gpu, vs);
         if (ps) SDL_ReleaseGPUShader(gpu, ps);

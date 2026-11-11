@@ -21,6 +21,7 @@
 #include "gameplay/Spawning.hpp"
 #include "gameplay/WallFactory.hpp"
 #include "physics/Raycast.hpp"
+#include "render/ShaderFormat.hpp"
 #include "systems/BeamSystem.hpp"
 #include "systems/CollisionSystem.hpp"
 #include "systems/FireSystem.hpp"
@@ -67,11 +68,9 @@ bool App::init() {
         return false;
     }
 
-    // M1 staged shaders are precompiled to DXIL, so request DXIL only — this
-    // deterministically selects the D3D12 backend and matches our shader blobs
-    // (ImGui's SDL_GPU backend has DXIL shaders too). The SDL_shadercross build
-    // step will later emit all formats and we can request them all again.
-    m_gpu = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_DXIL,
+    // Offer every format we ship blobs for; SDL picks D3D12 on Windows, Vulkan
+    // on Linux. ImGui's SDL_GPU backend ships its own shaders in every format.
+    m_gpu = SDL_CreateGPUDevice(kShippedShaderFormats,
                                 /*debug_mode=*/true, /*name=*/nullptr);
     if (m_gpu == nullptr) {
         SC_LOG_ERROR("SDL_CreateGPUDevice failed: %s", SDL_GetError());

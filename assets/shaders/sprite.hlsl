@@ -1,7 +1,5 @@
-// Sprite shader (M1). Authored once in HLSL; for M1 we compile it by hand to
-// DXIL with the Windows SDK `dxc` and commit the blobs under compiled/. The
-// SDL_shadercross build step (later milestone) will compile this same source
-// to SPIR-V / DXIL / MSL automatically.
+// Sprite shader (M1, no longer loaded). Hand-compiled to DXIL + SPIR-V by
+// tools/compile_shaders.cmake; the blobs are committed under compiled/.
 //
 // SDL3 GPU resource-binding convention for HLSL (must match exactly):
 //   Vertex stage:   textures/samplers -> space0,  uniform buffers -> space1
