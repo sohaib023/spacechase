@@ -32,9 +32,9 @@ after a break). Update it at the end of every work session or milestone.
 ## 2. Immediate next steps
 
 0. **Linux port follow-ups:** play on Ubuntu and confirm rendering/lighting match Windows. Check
-   whether the default X11 path gets the real GPU from a normal terminal (inside the agent sandbox
-   it fell back to llvmpipe; `SDL_VIDEO_DRIVER=wayland` uses the Intel GPU). Rebuild on Windows
-   once to confirm nothing regressed.
+   that Wayland (now preferred, since X11 fell back to software llvmpipe) gives proper window
+   decorations and smooth frame pacing on GNOME. Rebuild on Windows once to confirm nothing
+   regressed.
 1. **Playtest the unverified rows above** and fix whatever comes up. In the Ship panel:
    - *bounce* section: toggle bounce / max bounces / range for blaster and beam,
    - *deflector ability* + *fire test volley at ship*.
