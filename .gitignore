@@ -21,3 +21,6 @@ imgui.ini
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# Local toolchain downloaded by tools/setup_ubuntu.sh
+/.tools/

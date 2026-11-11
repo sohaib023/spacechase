@@ -43,12 +43,13 @@
     },
     {
       "name": "linux-clang",
-      "displayName": "Linux (Clang)",
-      "description": "Stub for future CI; not used until cross-platform work begins.",
+      "displayName": "Linux (Clang, from .tools)",
+      "description": "Clang 19 + ninja downloaded into .tools by tools/setup_ubuntu.sh.",
       "inherits": "base",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++"
+        "CMAKE_C_COMPILER": "${sourceDir}/.tools/llvm/bin/clang",
+        "CMAKE_CXX_COMPILER": "${sourceDir}/.tools/llvm/bin/clang++",
+        "CMAKE_MAKE_PROGRAM": "${sourceDir}/.tools/ninja/ninja"
       },
       "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
     },
@@ -66,6 +67,7 @@
     { "name": "windows-msvc-debug",       "configurePreset": "windows-msvc",     "configuration": "Debug" },
     { "name": "windows-msvc-release",     "configurePreset": "windows-msvc",     "configuration": "Release" },
     { "name": "linux-clang-debug",        "configurePreset": "linux-clang",      "configuration": "Debug" },
+    { "name": "linux-clang-release",      "configurePreset": "linux-clang",      "configuration": "Release" },
     { "name": "macos-clang-debug",        "configurePreset": "macos-clang",      "configuration": "Debug" }
   ],
   "testPresets": [
@@ -78,6 +80,12 @@
     {
       "name": "windows-msvc",
       "configurePreset": "windows-msvc",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "linux-clang",
+      "configurePreset": "linux-clang",
       "configuration": "Debug",
       "output": { "outputOnFailure": true }
     }
