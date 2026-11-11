@@ -215,7 +215,7 @@ and then fails on SPIR-V. On Windows, put a
 | D3D12 `E_INVALIDARG` creating a pipeline | Vertex inputs must use `TEXCOORD<n>` semantics where `n` = attribute location (SDL_GPU convention), not `POSITION`. |
 | Space doesn't fire while holding W + A (but does with W + D) | **Keyboard ghosting**: the keyboard hardware can't report that 3-key combo, so the game never sees it. Use the mouse buttons to fire. |
 | Shader edits have no effect | You didn't re-run `cmake -P tools/compile_shaders.cmake`. The game loads the committed `.dxil` / `.spv`. |
-| Linux: log shows `Vulkan Device: llvmpipe` / `No DRI3 support detected` | Vulkan fell back to software rendering because it runs on X11/XWayland. The game prefers Wayland on Linux (`App::init` hint) for this reason; check that `SDL_VIDEO_DRIVER` isn't set to `x11`. |
+| Linux: log shows `Vulkan Device: llvmpipe` / `No DRI3 support detected` | Vulkan fell back to software rendering on X11 (SDL 3.4 picks X11/XWayland on GNOME 46). Force Wayland: `SDL_VIDEO_DRIVER=wayland`. Seen inside Claude Code's command sandbox; check from a normal terminal. |
 | Linux: see SDL's GPU/driver log lines | `SDL_LOGGING='*=info' ./build/linux-clang/bin/Debug/SpaceChase` |
 | Linux: `linux-clang` configure can't find the compiler | Run `tools/setup_ubuntu.sh` first; the preset uses `.tools/llvm` and `.tools/ninja`. |
 | Configure fails downloading deps | FetchContent needs internet on first configure. Delete `build/` and retry. |

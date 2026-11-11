@@ -56,12 +56,6 @@ constexpr SDL_FColor kClearColor{0.10f, 0.10f, 0.12f, 1.0f};
 } // namespace
 
 bool App::init() {
-#ifdef __linux__
-    // SDL 3.4 defaults to X11 (XWayland) on compositors without fifo-v1, e.g.
-    // GNOME 46, where Vulkan can fall back to software llvmpipe. Prefer Wayland;
-    // the SDL_VIDEO_DRIVER env var still wins over this hint.
-    SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "wayland,x11");
-#endif
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         SC_LOG_ERROR("SDL_Init failed: %s", SDL_GetError());
         return false;
@@ -88,8 +82,7 @@ bool App::init() {
         return false;
     }
 
-    SC_LOG_INFO("GPU device driver: %s (video: %s)", SDL_GetGPUDeviceDriver(m_gpu),
-                SDL_GetCurrentVideoDriver());
+    SC_LOG_INFO("GPU device driver: %s", SDL_GetGPUDeviceDriver(m_gpu));
 
     // --- Dear ImGui ---
     IMGUI_CHECKVERSION();

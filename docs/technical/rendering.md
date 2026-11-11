@@ -12,9 +12,6 @@ Code: `src/render/`, `src/resources/`, `src/systems/RenderCollectSystem.*`,
   (`render/ShaderFormat.hpp`). SDL tries D3D12 before Vulkan, so Windows gets **D3D12** and Linux
   gets **Vulkan**; the renderer loads the `.dxil` or `.spv` blobs matching the chosen backend.
   Debug mode is on.
-- **Linux video driver:** `App::init` hints SDL to prefer **Wayland**, then X11. SDL 3.4 would
-  otherwise pick X11/XWayland on GNOME 46, where Mesa's Vulkan fell back to software llvmpipe
-  (no DRI3). The `SDL_VIDEO_DRIVER` env var overrides the hint.
 - **Shaders are HLSL, hand-compiled to DXIL and SPIR-V** by `cmake -P tools/compile_shaders.cmake`
   (`dxc`, profiles `vs_6_0` / `ps_6_0`). The `.dxil` / `.spv` files in `assets/shaders/compiled/`
   are committed, so **after editing any `.hlsl` you must re-run the script**. The Windows SDK `dxc`
